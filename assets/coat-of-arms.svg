@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bibliotheca Publica Varona — placeholder coat of arms.
+  Blazon: Quarterly; 1st and 4th argent a Jerusalem cross or; 2nd and 3rd azure a fleur-de-lis or.
+  Designed as a simple swap-target — replace this file with a finer version later.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" role="img" aria-label="Coat of Arms">
+  <defs>
+    <linearGradient id="argent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f1e3"/>
+      <stop offset="1" stop-color="#e6dcc1"/>
+    </linearGradient>
+    <linearGradient id="azure" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26456e"/>
+      <stop offset="1" stop-color="#1a2f4d"/>
+    </linearGradient>
+    <linearGradient id="or" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6c66b"/>
+      <stop offset="1" stop-color="#b88a2c"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a2618"/>
+      <stop offset="1" stop-color="#1d130b"/>
+    </linearGradient>
+    <!-- Heater-shield silhouette as a clipping path -->
+    <clipPath id="shieldClip">
+      <path d="M 30 30 L 370 30 L 370 230 Q 370 380 200 450 Q 30 380 30 230 Z"/>
+    </clipPath>
+    <!-- Jerusalem cross = a central cross potent + four small Greek crosses in the quadrants -->
+    <symbol id="jerusalemCross" viewBox="0 0 100 100">
+      <!-- Central cross potent (each arm capped by a T-bar) -->
+      <g fill="url(#or)" stroke="#7a5a14" stroke-width="0.6">
+        <rect x="42" y="22" width="16" height="56"/>
+        <rect x="22" y="42" width="56" height="16"/>
+        <!-- T-bars (potent terminations) -->
+        <rect x="38" y="22" width="24" height="5"/>
+        <rect x="38" y="73" width="24" height="5"/>
+        <rect x="22" y="38" width="5" height="24"/>
+        <rect x="73" y="38" width="5" height="24"/>
+      </g>
+      <!-- Four small Greek crosses in the quadrants (crosslets) -->
+      <g fill="url(#or)" stroke="#7a5a14" stroke-width="0.4">
+        <g transform="translate(28 28)">
+          <rect x="-3.5" y="-9" width="7" height="18"/>
+          <rect x="-9" y="-3.5" width="18" height="7"/>
+        </g>
+        <g transform="translate(72 28)">
+          <rect x="-3.5" y="-9" width="7" height="18"/>
+          <rect x="-9" y="-3.5" width="18" height="7"/>
+        </g>
+        <g transform="translate(28 72)">
+          <rect x="-3.5" y="-9" width="7" height="18"/>
+          <rect x="-9" y="-3.5" width="18" height="7"/>
+        </g>
+        <g transform="translate(72 72)">
+          <rect x="-3.5" y="-9" width="7" height="18"/>
+          <rect x="-9" y="-3.5" width="18" height="7"/>
+        </g>
+      </g>
+    </symbol>
+    <!-- Fleur-de-lis -->
+    <symbol id="fdl" viewBox="0 0 100 100">
+      <g fill="url(#or)" stroke="#7a5a14" stroke-width="0.6">
+        <path d="M50 12
+                 C 44 26, 30 36, 30 52
+                 C 30 62, 40 68, 50 64
+                 C 60 68, 70 62, 70 52
+                 C 70 36, 56 26, 50 12 Z"/>
+        <path d="M22 50
+                 C 22 64, 32 78, 50 80
+                 C 68 78, 78 64, 78 50
+                 C 70 60, 60 64, 50 64
+                 C 40 64, 30 60, 22 50 Z"/>
+        <rect x="24" y="58" width="52" height="6"/>
+        <path d="M30 70 C 38 84, 46 90, 50 96 C 54 90, 62 84, 70 70
+                 C 64 76, 58 78, 50 78 C 42 78, 36 76, 30 70 Z"/>
+      </g>
+    </symbol>
+  </defs>
+
+  <!-- Outer shield frame -->
+  <path d="M 30 30 L 370 30 L 370 230 Q 370 380 200 450 Q 30 380 30 230 Z"
+        fill="url(#frame)"/>
+
+  <!-- Field, clipped to shield -->
+  <g clip-path="url(#shieldClip)">
+    <!-- 1st quarter (top-left): argent -->
+    <rect x="30" y="30" width="170" height="220" fill="url(#argent)"/>
+    <!-- 2nd quarter (top-right): azure -->
+    <rect x="200" y="30" width="170" height="220" fill="url(#azure)"/>
+    <!-- 3rd quarter (bottom-left): azure -->
+    <rect x="30" y="250" width="170" height="200" fill="url(#azure)"/>
+    <!-- 4th quarter (bottom-right): argent -->
+    <rect x="200" y="250" width="170" height="200" fill="url(#argent)"/>
+
+    <!-- Charges -->
+    <!-- 1st quarter: Jerusalem cross -->
+    <use href="#jerusalemCross" x="50" y="55" width="120" height="120"/>
+    <!-- 2nd quarter: fleur-de-lis -->
+    <use href="#fdl" x="220" y="55" width="120" height="120"/>
+    <!-- 3rd quarter: fleur-de-lis -->
+    <use href="#fdl" x="50" y="265" width="120" height="120"/>
+    <!-- 4th quarter: Jerusalem cross -->
+    <use href="#jerusalemCross" x="220" y="265" width="120" height="120"/>
+
+    <!-- Pale division lines -->
+    <line x1="200" y1="30" x2="200" y2="450" stroke="#1a1108" stroke-width="3"/>
+    <line x1="30" y1="240" x2="370" y2="240" stroke="#1a1108" stroke-width="3"/>
+  </g>
+
+  <!-- Shield outline (over the fill) -->
+  <path d="M 30 30 L 370 30 L 370 230 Q 370 380 200 450 Q 30 380 30 230 Z"
+        fill="none" stroke="#1a1108" stroke-width="4"/>
+  <path d="M 36 36 L 364 36 L 364 230 Q 364 376 200 442 Q 36 376 36 230 Z"
+        fill="none" stroke="#7a5a14" stroke-width="0.8" opacity="0.6"/>
+</svg>

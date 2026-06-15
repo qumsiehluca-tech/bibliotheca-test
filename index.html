@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="la">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bibliotheca Publica Varona</title>
+
+<!-- Google Fonts: Trajan-style caps, Garamond body, blackletter rubric, Greek, Arabic -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+SC:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturMaguntia&family=Cormorant+Unicase:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;1,400&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/library.css">
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="scene" id="scene">
+
+    <!-- Title cartouche hovers above the book on hover -->
+    <div class="title-cartouche" id="titleCartouche"></div>
+
+    <!-- The single book on the desk. JS replaces innerHTML when the carousel changes. -->
+    <div class="desk-book" id="deskBook" role="button" tabindex="0" aria-label="Aperi librum">
+      <!-- Cover plate injected by JS -->
+    </div>
+
+    <!-- Carousel arrows + folio-index -->
+    <div class="carousel-nav" aria-label="Inter libros migrare">
+      <button id="prevBtn" type="button" aria-label="Liber prior" title="Liber prior">&#x276E;</button>
+      <span class="index" id="bookIndex">i / vii</span>
+      <button id="nextBtn" type="button" aria-label="Liber posterior" title="Liber posterior">&#x276F;</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/book-loader.js"></script>
+<script src="js/library.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "id": "fratri-morlexini",
+  "title": "Fratri Morlexini",
+  "author": "",
+  "year": "",
+  "deskPosition": 2,
+  "cover": {
+    "leather": "vellum-cream",
+    "ornament": "none",
+    "titleStyle": "gilt-trajan",
+    "wear": "light"
+  },
+  "frontispiece": {
+    "coatOfArms": true,
+    "subtitle": "",
+    "date": "",
+    "footer": ""
+  },
+  "contentFile": "content.md",
+  "turnStyle": "fade"
+}

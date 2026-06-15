@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 40" role="img" aria-hidden="true">
+  <g fill="none" stroke="#5e2422" stroke-width="1.1" stroke-linecap="round">
+    <!-- Left swash -->
+    <path d="M 4 20 Q 60 8, 110 20 Q 130 28, 140 20"/>
+    <path d="M 30 20 Q 38 14, 46 20 Q 38 26, 30 20"/>
+    <!-- Right swash (mirror) -->
+    <path d="M 316 20 Q 260 8, 210 20 Q 190 28, 180 20"/>
+    <path d="M 290 20 Q 282 14, 274 20 Q 282 26, 290 20"/>
+    <!-- Central rosette -->
+    <g transform="translate(160 20)">
+      <circle r="6" fill="#5e2422" stroke="none"/>
+      <circle r="2.4" fill="#e6c66b" stroke="none"/>
+      <g stroke-width="1.0">
+        <path d="M -14 0 Q -10 -6, -6 0 Q -10 6, -14 0 Z" fill="#5e2422"/>
+        <path d="M  14 0 Q  10 -6,  6 0 Q  10 6,  14 0 Z" fill="#5e2422"/>
+        <path d="M 0 -14 Q -6 -10, 0 -6 Q 6 -10, 0 -14 Z" fill="#5e2422"/>
+        <path d="M 0  14 Q -6  10, 0  6 Q 6  10, 0  14 Z" fill="#5e2422"/>
+      </g>
+    </g>
+  </g>
+</svg>

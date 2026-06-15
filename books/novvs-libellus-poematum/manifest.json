@@ -1,0 +1,21 @@
+{
+  "id": "novvs-libellus-poematum",
+  "title": "Novvs Libellus Poematum",
+  "author": "",
+  "year": "",
+  "deskPosition": 1,
+  "cover": {
+    "leather": "vellum-cream",
+    "ornament": "none",
+    "titleStyle": "gilt-trajan",
+    "wear": "light"
+  },
+  "frontispiece": {
+    "coatOfArms": true,
+    "subtitle": "",
+    "date": "",
+    "footer": ""
+  },
+  "contentFile": "content.md",
+  "turnStyle": "fade"
+}

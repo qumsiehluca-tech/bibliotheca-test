@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-label="Litera maior Q">
+  <defs>
+    <linearGradient id="parchment" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6ead0"/>
+      <stop offset="1" stop-color="#e7d8b0"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8c976"/>
+      <stop offset="0.5" stop-color="#b88a2c"/>
+      <stop offset="1" stop-color="#7a5a14"/>
+    </linearGradient>
+    <radialGradient id="parchmentShade" cx="0.5" cy="0.55" r="0.7">
+      <stop offset="0" stop-color="#f8efd6"/>
+      <stop offset="1" stop-color="#d8c596"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Parchment panel -->
+  <rect x="6" y="6" width="348" height="348" fill="url(#parchmentShade)"/>
+  <!-- Outer red rule -->
+  <rect x="6" y="6" width="348" height="348" fill="none" stroke="#5e2422" stroke-width="3"/>
+  <!-- Inner gold rule -->
+  <rect x="18" y="18" width="324" height="324" fill="none" stroke="url(#gold)" stroke-width="1.4"/>
+
+  <!-- Corner foliate flourishes -->
+  <g fill="url(#gold)" stroke="#7a5a14" stroke-width="0.5">
+    <!-- top-left -->
+    <g transform="translate(28 28)">
+      <path d="M 0 0 Q 22 4, 32 22 Q 36 12, 50 10 Q 40 18, 34 30 Q 26 22, 12 24 Q 18 14, 0 0 Z"/>
+      <circle cx="40" cy="4" r="2.4"/>
+    </g>
+    <!-- top-right -->
+    <g transform="translate(332 28) scale(-1 1)">
+      <path d="M 0 0 Q 22 4, 32 22 Q 36 12, 50 10 Q 40 18, 34 30 Q 26 22, 12 24 Q 18 14, 0 0 Z"/>
+      <circle cx="40" cy="4" r="2.4"/>
+    </g>
+    <!-- bottom-left -->
+    <g transform="translate(28 332) scale(1 -1)">
+      <path d="M 0 0 Q 22 4, 32 22 Q 36 12, 50 10 Q 40 18, 34 30 Q 26 22, 12 24 Q 18 14, 0 0 Z"/>
+      <circle cx="40" cy="4" r="2.4"/>
+    </g>
+    <!-- bottom-right -->
+    <g transform="translate(332 332) scale(-1 -1)">
+      <path d="M 0 0 Q 22 4, 32 22 Q 36 12, 50 10 Q 40 18, 34 30 Q 26 22, 12 24 Q 18 14, 0 0 Z"/>
+      <circle cx="40" cy="4" r="2.4"/>
+    </g>
+  </g>
+
+  <!-- Side foliate flourishes (mid-edges) -->
+  <g fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-linecap="round">
+    <path d="M 180 22 Q 168 36, 180 50 Q 192 36, 180 22 Z" fill="url(#gold)"/>
+    <path d="M 180 338 Q 168 324, 180 310 Q 192 324, 180 338 Z" fill="url(#gold)"/>
+    <path d="M 22 180 Q 36 168, 50 180 Q 36 192, 22 180 Z" fill="url(#gold)"/>
+    <path d="M 338 180 Q 324 168, 310 180 Q 324 192, 338 180 Z" fill="url(#gold)"/>
+  </g>
+
+  <!-- The majuscule -->
+  <text x="180" y="180"
+        dominant-baseline="central"
+        text-anchor="middle"
+        font-family="'UnifrakturMaguntia','Cormorant Unicase','EB Garamond',serif"
+        font-size="260"
+        font-weight="700"
+        fill="#5e2422"
+        stroke="#3a1614"
+        stroke-width="0.6">Q</text>
+
+  <!-- Subtle ink-bleed shadow around the letter (purely decorative) -->
+  <text x="182" y="182"
+        dominant-baseline="central"
+        text-anchor="middle"
+        font-family="'UnifrakturMaguntia','Cormorant Unicase','EB Garamond',serif"
+        font-size="260"
+        font-weight="700"
+        fill="#3a1614"
+        opacity="0.18">Q</text>
+</svg>

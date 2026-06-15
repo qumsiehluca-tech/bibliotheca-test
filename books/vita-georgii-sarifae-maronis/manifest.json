@@ -1,0 +1,21 @@
+{
+  "id": "vita-georgii-sarifae-maronis",
+  "title": "Vita Georgii Sarifae Maronis",
+  "author": "",
+  "year": "",
+  "deskPosition": 4,
+  "cover": {
+    "leather": "vellum-cream",
+    "ornament": "none",
+    "titleStyle": "gilt-trajan",
+    "wear": "light"
+  },
+  "frontispiece": {
+    "coatOfArms": true,
+    "subtitle": "",
+    "date": "",
+    "footer": ""
+  },
+  "contentFile": "content.md",
+  "turnStyle": "fade"
+}

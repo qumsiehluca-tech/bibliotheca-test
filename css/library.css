@@ -1,0 +1,272 @@
+/* =========================================================
+   Bibliotheca Publica Varona — Library Landing
+   ========================================================= */
+
+:root {
+  --gilt:        #c8a14a;
+  --gilt-glow:   #f0d57a;
+  --oxblood:     #5e2422;
+  --ink:         #1a1108;
+  --vellum:      #f1e6cf;
+}
+
+@font-face {
+  /* serif fallback handled by Google Fonts loaded in HTML head */
+  font-family: 'TrajanFallback';
+  src: local('Cinzel'), local('Trajan Pro'), local('Cormorant SC');
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #0b0805;
+  color: var(--vellum);
+  overflow: hidden;
+  font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The stage covers the viewport in a 16:9 frame, the same aspect as library.jpg,
+   so percentage positions on top of the image always land on the same pixel. */
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0b0805;
+}
+.scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Smallest 16:9 box that fully covers the viewport */
+  width: max(100vw, calc(100vh * 16 / 9));
+  height: max(100vh, calc(100vw * 9 / 16));
+  background-image: url('../assets/library.jpg');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform 900ms cubic-bezier(.65,0,.35,1),
+              filter 900ms cubic-bezier(.65,0,.35,1),
+              opacity 900ms cubic-bezier(.65,0,.35,1);
+}
+
+/* When zooming into a book, the scene leans forward and dims */
+.stage.zooming .scene {
+  transform: translate(-50%, -50%) scale(1.06);
+  filter: brightness(0.55) blur(2px);
+  opacity: 0.5;
+}
+
+/* ---- Book on the desk (single, centered between candle and lectern) ---- */
+.desk-book {
+  position: absolute;
+  /* Image coords: the empty wood between candle (~32%) and lectern (~70%)
+     vertically centered around y ≈ 81% (just on the desk surface). */
+  left: 50.5%;
+  top:  82.5%;
+  transform: translate(-50%, -50%) perspective(900px) rotateX(48deg);
+  transform-origin: 50% 60%;
+  width: clamp(150px, 18vw, 260px);
+  aspect-ratio: 7 / 10;
+  cursor: pointer;
+  transition: transform 600ms cubic-bezier(.4,.0,.2,1),
+              filter   600ms ease,
+              opacity  500ms ease;
+  filter: drop-shadow(0 12px 16px rgba(0,0,0,0.55));
+  will-change: transform, opacity;
+}
+
+/* Slide-in carousel positions (assigned by JS) */
+.desk-book.from-left  { transform: translate(-160%, -50%) perspective(900px) rotateX(48deg); opacity: 0; }
+.desk-book.from-right { transform: translate(60%,   -50%) perspective(900px) rotateX(48deg); opacity: 0; }
+.desk-book.out-left   { transform: translate(-160%, -50%) perspective(900px) rotateX(48deg); opacity: 0; }
+.desk-book.out-right  { transform: translate(60%,   -50%) perspective(900px) rotateX(48deg); opacity: 0; }
+
+/* Hover: faint warm glow + slight lift */
+.desk-book:hover {
+  filter: drop-shadow(0 18px 22px rgba(0,0,0,0.55)) drop-shadow(0 0 18px rgba(240,213,122,0.45));
+  transform: translate(-50%, -54%) perspective(900px) rotateX(46deg);
+}
+
+/* When opening (clicked), the book lifts off the desk to flat-facing */
+.desk-book.opening {
+  transform: translate(-50%, -85%) perspective(900px) rotateX(0deg) scale(1.4);
+  filter: drop-shadow(0 26px 30px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(240,213,122,0.6));
+}
+
+/* ---- The cover plate (a leather-bound top view) ---- */
+.cover {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px 6px 6px 4px / 4px 6px 6px 4px;
+  overflow: hidden;
+  box-shadow:
+    inset  0  1px 0 rgba(255,255,255,0.10),
+    inset  0 -2px 0 rgba(0,0,0,0.45),
+    inset  3px 0 0 rgba(0,0,0,0.20),     /* spine shadow on left */
+    inset -1px 0 0 rgba(255,255,255,0.05),
+    0 0 0 1px rgba(0,0,0,0.40);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12% 10%;
+  user-select: none;
+}
+
+/* Leather palettes (radial highlight + linear darken at the spine) */
+.cover[data-leather="oxblood"]      { background:
+  radial-gradient(ellipse at 55% 38%, #7a2e2b 0%, #5a1c1a 45%, #2e0908 100%); }
+.cover[data-leather="dark-green"]   { background:
+  radial-gradient(ellipse at 55% 38%, #2a4a30 0%, #1a3a20 45%, #0c1f12 100%); }
+.cover[data-leather="tan"]          { background:
+  radial-gradient(ellipse at 55% 38%, #9b7a4a 0%, #6f522d 50%, #3e2a13 100%); }
+.cover[data-leather="midnight-blue"]{ background:
+  radial-gradient(ellipse at 55% 38%, #1d3a60 0%, #0f2440 45%, #061528 100%); }
+.cover[data-leather="vellum-cream"] { background:
+  radial-gradient(ellipse at 55% 38%, #efe1bb 0%, #d9c79c 55%, #b89e6b 100%); }
+.cover[data-leather="black"]        { background:
+  radial-gradient(ellipse at 55% 38%, #2a221d 0%, #14100c 50%, #050402 100%); }
+
+/* Vellum books take dark gilt text instead of bright gold for legibility */
+.cover[data-leather="vellum-cream"] .cover-title { color: #6a4b15; text-shadow: 0 0 1px #3a2810; }
+
+/* Subtle leather grain (cheap CSS noise) */
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient( 25deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 4px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Inner gilt rule */
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px solid var(--gilt);
+  opacity: 0.55;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Gilt title — Trajan-ish caps */
+.cover-title {
+  font-family: 'Cinzel', 'Cormorant SC', 'Trajan Pro', serif;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gilt);
+  text-shadow:
+    0 0 1px #f7e7a5,
+    0 0 6px rgba(240,213,122,0.30);
+  text-align: center;
+  line-height: 1.15;
+  font-size: clamp(8px, 1.05vw, 14px);
+  z-index: 2;
+}
+
+/* Cover ornament */
+.cover-ornament {
+  margin-top: 0.9em;
+  width: 32%;
+  opacity: 0.85;
+  z-index: 2;
+}
+
+/* Light wear: faint dark scuff in upper-right */
+.cover[data-wear="light"] .cover-wear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 28% 12% at 78% 18%, rgba(0,0,0,0.18), transparent 70%),
+    radial-gradient(ellipse 12% 6%  at 22% 82%, rgba(0,0,0,0.10), transparent 70%);
+  mix-blend-mode: multiply;
+}
+
+/* ---- Title cartouche hovering above the desk on hover ---- */
+.title-cartouche {
+  position: absolute;
+  left: 50%;
+  top: 64%;
+  transform: translate(-50%, 0);
+  font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--vellum);
+  letter-spacing: 0.04em;
+  font-size: clamp(18px, 2.0vw, 28px);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+  opacity: 0;
+  transition: opacity 350ms ease, transform 350ms ease;
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+}
+.stage.book-hover .title-cartouche {
+  opacity: 1;
+  transform: translate(-50%, -6px);
+}
+
+/* ---- Navigation arrows at the bottom ---- */
+.carousel-nav {
+  position: absolute;
+  left: 50%;
+  bottom: 3.2vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(36px, 5vw, 80px);
+  z-index: 5;
+}
+.carousel-nav button {
+  background: transparent;
+  border: 1px solid rgba(240,213,122,0.40);
+  color: var(--vellum);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(20px, 1.6vw, 26px);
+  width: clamp(44px, 4vw, 56px);
+  height: clamp(44px, 4vw, 56px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+  backdrop-filter: blur(2px);
+  background: rgba(15,10,5,0.35);
+}
+.carousel-nav button:hover {
+  background: rgba(240,213,122,0.15);
+  border-color: var(--gilt-glow);
+  color: var(--gilt-glow);
+}
+.carousel-nav .index {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  color: rgba(241,230,207,0.7);
+  font-size: clamp(13px, 1.05vw, 16px);
+  letter-spacing: 0.06em;
+  min-width: 5ch;
+  text-align: center;
+}
+
+/* Stage fade out when navigating to manuscript */
+.stage.zooming { pointer-events: none; }
+
+/* Hide elements during transitions */
+.stage.zooming .carousel-nav,
+.stage.zooming .title-cartouche { opacity: 0; transition: opacity 400ms ease; }

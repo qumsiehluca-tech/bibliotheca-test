@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="la">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manuscriptum</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+SC:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturMaguntia&family=Cormorant+Unicase:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;1,400&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/manuscript.css">
+</head>
+<body>
+
+<div class="reader-backdrop"></div>
+
+<div class="reader" id="reader">
+
+  <header class="reader-topbar">
+    <a href="index.html" id="backLink">&#8592; ad bibliothecam</a>
+    <button id="tabulaBtn" type="button" aria-label="Tabula" title="Tabula">&#10086;&nbsp;TABVLA</button>
+  </header>
+
+  <main class="spread-frame" id="spreadFrame">
+    <button class="turn prev" id="prevSpread" type="button" aria-label="Folium prius" title="Folium prius">&#10086;</button>
+
+    <div class="spread" id="spread" data-turn-style="fade">
+      <!-- Two pages injected by JS -->
+    </div>
+
+    <button class="turn next" id="nextSpread" type="button" aria-label="Folium posterius" title="Folium posterius">&#10086;</button>
+  </main>
+
+  <footer style="height:8px;"></footer>
+
+</div>
+
+<!-- TABVLA overlay -->
+<div class="tabula-overlay" id="tabulaOverlay" role="dialog" aria-modal="true" aria-label="Tabula">
+  <div class="tabula-sheet">
+    <button class="tabula-close" id="tabulaClose" type="button" aria-label="Claudere">&times;</button>
+    <h2>TABVLA</h2>
+    <img class="tabula-divider" src="assets/ornaments/divider.svg" alt="">
+    <ol id="tabulaList"></ol>
+  </div>
+</div>
+
+<div class="reader-loading" id="readerLoading">conlegendo&nbsp;…</div>
+
+<script src="js/book-loader.js"></script>
+<script src="js/manuscript.js"></script>
+</body>
+</html>

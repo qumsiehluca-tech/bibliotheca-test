@@ -1,0 +1,21 @@
+{
+  "id": "moribundus",
+  "title": "Moribundus",
+  "author": "",
+  "year": "",
+  "deskPosition": 5,
+  "cover": {
+    "leather": "vellum-cream",
+    "ornament": "none",
+    "titleStyle": "gilt-trajan",
+    "wear": "light"
+  },
+  "frontispiece": {
+    "coatOfArms": true,
+    "subtitle": "",
+    "date": "",
+    "footer": ""
+  },
+  "contentFile": "content.md",
+  "turnStyle": "fade"
+}

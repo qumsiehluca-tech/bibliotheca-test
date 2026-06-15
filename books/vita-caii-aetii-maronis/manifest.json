@@ -1,0 +1,21 @@
+{
+  "id": "vita-caii-aetii-maronis",
+  "title": "Vita Caii Aetii Maronis",
+  "author": "",
+  "year": "A.D. DCCXXXIV",
+  "deskPosition": 3,
+  "cover": {
+    "leather": "oxblood",
+    "ornament": "shield",
+    "titleStyle": "gilt-trajan",
+    "wear": "light"
+  },
+  "frontispiece": {
+    "coatOfArms": true,
+    "subtitle": "LIBRI VII",
+    "date": "A.D. DCCXXXIV",
+    "footer": "hic fuit"
+  },
+  "contentFile": "content.md",
+  "turnStyle": "fade"
+}
