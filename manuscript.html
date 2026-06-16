@@ -7,21 +7,27 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+SC:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturMaguntia&family=Cormorant+Unicase:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;1,400&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+SC:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cormorant+Unicase:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;1,400&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/manuscript.css">
 </head>
-<body>
+<body class="codex-mode">
 
 <div class="reader-backdrop"></div>
 
 <div class="reader" id="reader">
 
   <header class="reader-topbar">
-    <a href="index.html" id="backLink">&#8592; ad bibliothecam</a>
-    <button id="tabulaBtn" type="button" aria-label="Tabula" title="Tabula">&#10086;&nbsp;TABVLA</button>
+    <div class="topbar-left">
+      <a href="index.html" id="backLink">&#8592; ad bibliothecam</a>
+    </div>
+    <div class="topbar-right">
+      <button id="modeToggle" class="mode-toggle" type="button" title="Lectionis modus">codex</button>
+      <button id="tabulaBtn" type="button" aria-label="Tabula" title="Tabula">&#10086;&nbsp;TABVLA</button>
+    </div>
   </header>
 
+  <!-- CODEX (spread) view -->
   <main class="spread-frame" id="spreadFrame">
     <button class="turn prev" id="prevSpread" type="button" aria-label="Folium prius" title="Folium prius">&#10086;</button>
 
@@ -32,7 +38,12 @@
     <button class="turn next" id="nextSpread" type="button" aria-label="Folium posterius" title="Folium posterius">&#10086;</button>
   </main>
 
-  <footer style="height:8px;"></footer>
+  <!-- SCROLL view -->
+  <main class="scroll-frame" id="scrollFrame">
+    <div class="scroll-column" id="scrollColumn">
+      <!-- Pages stacked by JS -->
+    </div>
+  </main>
 
 </div>
 
@@ -46,7 +57,7 @@
   </div>
 </div>
 
-<div class="reader-loading" id="readerLoading">conlegendo&nbsp;…</div>
+<div class="reader-loading" id="readerLoading">conlegendo&nbsp;&hellip;</div>
 
 <script src="js/book-loader.js"></script>
 <script src="js/manuscript.js"></script>
