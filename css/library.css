@@ -148,8 +148,9 @@ html, body {
   background: rgba(15,10,5,0.4);
   border: 1px solid rgba(240,213,122,0.40);
   color: var(--vellum);
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
+  font-family: 'Cinzel', 'Cormorant SC', serif;
+  font-style: normal;
+  font-weight: 400;
   font-size: clamp(18px, 1.5vw, 24px);
   width: clamp(40px, 3.6vw, 52px);
   height: clamp(40px, 3.6vw, 52px);

@@ -1,7 +1,7 @@
 /* =========================================================
    Bibliotheca Publica Varona — manuscript.js
    Reader: frontispiece, paginated two-page spreads, drop caps,
-   TABVLA, keyboard navigation, scroll mode, epilogue prelude.
+   TABVLA, keyboard + wheel + touch navigation, epilogue prelude.
    ========================================================= */
 
 (async function () {
@@ -11,8 +11,6 @@
   const reader        = document.getElementById('reader');
   const spread        = document.getElementById('spread');
   const spreadFrame   = document.getElementById('spreadFrame');
-  const scrollFrame   = document.getElementById('scrollFrame');
-  const scrollColumn  = document.getElementById('scrollColumn');
   const prevBtn       = document.getElementById('prevSpread');
   const nextBtn       = document.getElementById('nextSpread');
   const tabulaBtn     = document.getElementById('tabulaBtn');
@@ -21,7 +19,6 @@
   const tabulaList    = document.getElementById('tabulaList');
   const backLink      = document.getElementById('backLink');
   const loading       = document.getElementById('readerLoading');
-  const modeToggle    = document.getElementById('modeToggle');
 
   // ---- Resolve book id -----------------------------------------------
   const params = new URLSearchParams(window.location.search);
@@ -46,25 +43,22 @@
   document.title = manifest.title || 'Manuscriptum';
   spread.dataset.turnStyle = manifest.turnStyle || 'fade';
 
-  // ---- Wait for Canterbury + body fonts to load ---------------------
+  // ---- Wait for Canterbury + body fonts to actually load ------------
   if (document.fonts) {
     try {
-      // Force Canterbury and EB Garamond to actually load before measuring
       await Promise.all([
         document.fonts.load('1em "Canterbury"'),
         document.fonts.load('1em "EB Garamond"'),
         document.fonts.load('italic 1em "EB Garamond"'),
+        document.fonts.load('600 1em "EB Garamond"'),
         document.fonts.load('1em "Cinzel"'),
         document.fonts.load('1em "Cormorant Garamond"'),
       ]);
       if (document.fonts.ready) await document.fonts.ready;
-    } catch (_) { /* fonts may not all be reachable in sandboxes; carry on */ }
+    } catch (_) { /* sandboxes may block CDN — carry on */ }
   }
 
   // ---- Build the linear block list ----------------------------------
-  // For each chapter, emit { chapter-title, body... }.
-  // Insert an Epilogue-Prelude page before any chapter whose title is the
-  // Epilogvs, so the reader sees a Latin invitation before reading on.
   const blocks = [];
   const isEpilogueTitle = t => /epilog/i.test(t || '');
 
@@ -96,22 +90,16 @@
     box.style.pointerEvents = 'none';
     box.style.left = '-10000px';
     box.style.top = '0';
-    // overflow:visible so the candidate node's bounding rect bottom truly
-    // reflects content extent (not the clipped page).
     box.style.overflow = 'visible';
     return box;
   }
 
   function sizeMeasureBox(box) {
-    // Stub the visible spread so the browser computes its real size under
-    // the current grid + viewport constraints; use that as the target.
     spread.innerHTML = '<div class="page verso"></div><div class="page recto"></div>';
     void spread.offsetWidth;
     const recto = spread.querySelector('.page.recto');
-    const w = recto.offsetWidth;
-    const h = recto.offsetHeight;
-    box.style.width  = w + 'px';
-    box.style.height = h + 'px';
+    box.style.width  = recto.offsetWidth + 'px';
+    box.style.height = recto.offsetHeight + 'px';
   }
 
   function blockToNode(block) {
@@ -131,12 +119,13 @@
       return wrap;
     }
     if (block.type === 'epilogue-prelude') {
-      // Whole-page block; we treat it as taller than fits so it always lives
-      // on its own page. It's never actually appended to the measure box —
-      // see paginate() below where we shunt it directly to its own page.
       const wrap = document.createElement('div');
       wrap.className = 'epilogue-prelude-marker';
       return wrap;
+    }
+    if (block.type === 'rule') {
+      const hr = document.createElement('hr');
+      return hr;
     }
     if (block.type === 'verse') {
       const v = document.createElement('div');
@@ -171,8 +160,6 @@
     const pages = [];
     let pageBlocks = [];
 
-    // Safety buffer — pull the limit in a few pixels so we never visually
-    // overflow due to sub-pixel font / image loading nondeterminism.
     const SAFETY = 6;
     const padBot = parseFloat(getComputedStyle(measure).paddingBottom) || 0;
     const boxR   = measure.getBoundingClientRect();
@@ -199,19 +186,18 @@
 
       // Epilogue prelude — always its own page
       if (b.type === 'epilogue-prelude') {
-        flush();                 // close out whatever was being built
-        pages.push([b]);         // its own dedicated page
+        flush();
+        pages.push([b]);
         continue;
       }
 
-      // ---- Verse and chapter-title are atomic ----
-      if (b.type === 'verse' || b.type === 'chapter-title') {
+      // Verse, chapter-title, rule — atomic
+      if (b.type === 'verse' || b.type === 'chapter-title' || b.type === 'rule') {
         const node = blockToNode(b);
         measure.appendChild(node);
         if (!fits()) {
           measure.removeChild(node);
           if (pageBlocks.length === 0) {
-            // Even on an empty page it doesn't fit — accept as oversized
             measure.appendChild(node);
             pageBlocks.push(b);
             flush();
@@ -224,13 +210,12 @@
         // Orphan check for chapter titles
         if (b.type === 'chapter-title' && queue.length > 0 && pageBlocks.length > 0) {
           const next = queue[0];
-          let probe;
+          let probe = null;
           if (next.type === 'paragraph') {
             const firstWords = next.text.split(/\s+/).slice(0, 20).join(' ');
             probe = blockToNode({ type: 'paragraph', text: firstWords, dropcap: next.dropcap });
-          } else if (next.type === 'verse' || next.type === 'epilogue-prelude') {
-            // For verse, peek; for prelude, allow chapter title alone (prelude is own page anyway)
-            probe = next.type === 'verse' ? blockToNode(next) : null;
+          } else if (next.type === 'verse') {
+            probe = blockToNode(next);
           }
           if (probe) {
             measure.appendChild(probe);
@@ -248,7 +233,7 @@
         continue;
       }
 
-      // ---- Paragraph: try whole, otherwise split by word ----
+      // Paragraph: try whole, otherwise split by word
       if (b.type === 'paragraph') {
         const node = blockToNode(b);
         measure.appendChild(node);
@@ -269,7 +254,7 @@
             type: 'paragraph',
             text: split.restText,
             dropcap: false,
-            continuation: true    // the remainder is a continuation
+            continuation: true
           };
           measure.appendChild(blockToNode(head));
           pageBlocks.push(head);
@@ -280,7 +265,6 @@
             flush();
             queue.unshift(b);
           } else {
-            // Empty page and not even one word fits — degenerate.
             measure.appendChild(node);
             pageBlocks.push(b);
             flush();
@@ -363,10 +347,13 @@
            I[n%10];
   }
 
-  // ---- Render pages --------------------------------------------------
-
   function escapeHTML(s) {
     return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  }
+
+  // Lowercase the subtitle (so "LIBRI VII" → "Libri vii" for Canterbury).
+  function lowerCanterbury(s) {
+    return String(s).toLowerCase();
   }
 
   function renderFrontispiece() {
@@ -375,10 +362,16 @@
     if (f.coatOfArms) {
       parts.push(`<img class="coa" src="assets/coat-of-arms.png" alt="">`);
     }
-    parts.push(`<h1 class="fp-title">${escapeHTML(manifest.title || '').toUpperCase()}</h1>`);
-    if (f.subtitle) parts.push(`<div class="fp-subtitle">${escapeHTML(f.subtitle)}</div>`);
-    if (f.date)     parts.push(`<div class="fp-date">${escapeHTML(f.date)}</div>`);
-    if (f.footer)   parts.push(`<div class="fp-footer">${escapeHTML(f.footer)}</div>`);
+    parts.push(`<img class="fp-fleuron" src="assets/ornaments/fleuron.svg" alt="">`);
+    // Title — Canterbury, displayed exactly as written in the manifest
+    parts.push(`<h1 class="fp-title">${escapeHTML(manifest.title || '')}</h1>`);
+    if (f.subtitle) {
+      // Subtitle in Canterbury too, lowercased for the blackletter aesthetic
+      parts.push(`<div class="fp-subtitle">${escapeHTML(lowerCanterbury(f.subtitle))}</div>`);
+    }
+    parts.push(`<img class="fp-rule" src="assets/ornaments/divider.svg" alt="">`);
+    if (f.date) parts.push(`<div class="fp-date">${escapeHTML(f.date)}</div>`);
+    if (f.footer) parts.push(`<div class="fp-footer">${escapeHTML(f.footer)}</div>`);
     return parts.join('');
   }
 
@@ -409,7 +402,6 @@
         <div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>
       </div>`;
     }
-    // Content page (may contain epilogue-prelude marker block)
     if (page.blocks && page.blocks.length === 1 && page.blocks[0].type === 'epilogue-prelude') {
       return `<div class="page ${side} epilogue-prelude">${renderEpiloguePrelude()}</div>`;
     }
@@ -443,28 +435,6 @@
     nextBtn.disabled = currentSpread >= spreads.length - 1;
   }
 
-  // ---- Scroll mode rendering ----------------------------------------
-
-  function renderScrollMode() {
-    scrollColumn.innerHTML = '';
-    // Frontispiece first
-    scrollColumn.insertAdjacentHTML('beforeend', renderPageHTML({ type:'frontispiece' }, 'recto', ''));
-    if (isPlaceholder) {
-      scrollColumn.insertAdjacentHTML('beforeend', renderPageHTML({ type:'placeholder' }, 'recto', ''));
-      return;
-    }
-    // All content pages, in order, each as its own block
-    for (let i = 0; i < contentPages.length; i++) {
-      scrollColumn.insertAdjacentHTML('beforeend',
-        renderPageHTML(
-          { type: 'content', blocks: contentPages[i] },
-          'recto',
-          toRoman(i + 1)
-        )
-      );
-    }
-  }
-
   // ---- TABVLA --------------------------------------------------------
   function buildTabula() {
     tabulaList.innerHTML = '';
@@ -483,7 +453,7 @@
       const folio = pageIdx >= 0 ? toRoman(pageIdx + 1) : '';
       const li = document.createElement('li');
       li.innerHTML = `
-        <button type="button" data-spread="${spreadIdx}" data-page="${pageIdx}">${escapeHTML(ch.title)}</button>
+        <button type="button" data-spread="${spreadIdx}">${escapeHTML(ch.title)}</button>
         <span class="folio-ref">fol. ${folio}</span>
       `;
       tabulaList.appendChild(li);
@@ -501,79 +471,96 @@
     const btn = e.target.closest('button[data-spread]');
     if (!btn) return;
     const s = parseInt(btn.dataset.spread, 10);
-    const p = parseInt(btn.dataset.page, 10);
     closeTabula();
-    if (document.body.classList.contains('scroll-mode')) {
-      // Jump to the corresponding page in scroll mode
-      const pages = scrollColumn.querySelectorAll('.page');
-      const target = pages[p + 1]; // +1 because scroll starts with frontispiece
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (!Number.isNaN(s) && s >= 0 && s < spreads.length) {
+    if (!Number.isNaN(s) && s >= 0 && s < spreads.length) {
       currentSpread = s;
       renderSpread('next');
     }
   });
 
-  // ---- Navigation ----------------------------------------------------
+  // ---- Page navigation ----------------------------------------------
+  let inTurn = false;
   function goNext() {
-    if (currentSpread >= spreads.length - 1) return;
+    if (inTurn || currentSpread >= spreads.length - 1) return;
+    inTurn = true;
     currentSpread++;
     renderSpread('next');
+    setTimeout(() => { inTurn = false; }, 550);
   }
   function goPrev() {
-    if (currentSpread <= 0) return;
+    if (inTurn || currentSpread <= 0) return;
+    inTurn = true;
     currentSpread--;
     renderSpread('prev');
+    setTimeout(() => { inTurn = false; }, 550);
   }
   prevBtn.addEventListener('click', goPrev);
   nextBtn.addEventListener('click', goNext);
 
+  // Keyboard
   window.addEventListener('keydown', (e) => {
     if (tabulaOverlay.classList.contains('open')) {
       if (e.key === 'Escape') closeTabula();
       return;
     }
-    if (document.body.classList.contains('scroll-mode')) {
-      // In scroll mode, only handle TABVLA / back / mode toggle
-      if (e.key === 'Escape')                  { backLink.click(); }
-      else if (e.key === 't' || e.key === 'T') { openTabula(); }
-      else if (e.key === 'm' || e.key === 'M') { setMode('codex'); }
-      return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); goNext();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); goPrev();
+    } else if (e.key === 'Escape') {
+      backLink.click();
+    } else if (e.key === 't' || e.key === 'T') {
+      openTabula();
     }
-    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goNext(); }
-    else if (e.key === 'ArrowLeft')              { e.preventDefault(); goPrev(); }
-    else if (e.key === 'Escape')                 { backLink.click(); }
-    else if (e.key === 't' || e.key === 'T')     { openTabula(); }
-    else if (e.key === 'm' || e.key === 'M')     { setMode('scroll'); }
   });
 
+  // ---- Scroll-wheel = turn page (cooldown to avoid skipping) --------
+  let wheelCooldown = false;
+  function onWheel(e) {
+    if (tabulaOverlay.classList.contains('open')) return;
+    if (wheelCooldown) { e.preventDefault(); return; }
+    // Ignore very small/zero deltas (trackpad jitter)
+    if (Math.abs(e.deltaY) < 8 && Math.abs(e.deltaX) < 8) return;
+    e.preventDefault();
+    const forward = (Math.abs(e.deltaY) >= Math.abs(e.deltaX))
+                    ? e.deltaY > 0
+                    : e.deltaX > 0;
+    if (forward) goNext(); else goPrev();
+    wheelCooldown = true;
+    setTimeout(() => { wheelCooldown = false; }, 650);
+  }
+  window.addEventListener('wheel', onWheel, { passive: false });
+
+  // ---- Touch swipe -------------------------------------------------
+  let touchStartY = null, touchStartX = null;
+  spreadFrame.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+    }
+  }, { passive: true });
+  spreadFrame.addEventListener('touchend', (e) => {
+    if (touchStartY == null) return;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - touchStartY;
+    const dx = t.clientX - touchStartX;
+    const absY = Math.abs(dy), absX = Math.abs(dx);
+    if (Math.max(absY, absX) > 48) {
+      const forward = (absY > absX) ? dy < 0 : dx < 0;  // swipe up OR left = next
+      if (forward) goNext(); else goPrev();
+    }
+    touchStartY = null;
+    touchStartX = null;
+  }, { passive: true });
+
+  // ---- Back to library --------------------------------------------
   backLink.addEventListener('click', (e) => {
     e.preventDefault();
     reader.classList.add('leaving');
     setTimeout(() => { window.location.href = 'index.html'; }, 880);
   });
 
-  // ---- Mode toggle ---------------------------------------------------
-  function setMode(mode /* 'codex' | 'scroll' */) {
-    if (mode === 'scroll') {
-      document.body.classList.remove('codex-mode');
-      document.body.classList.add('scroll-mode');
-      modeToggle.textContent = 'scrolla';
-      modeToggle.classList.add('active');
-      // Render the scroll column if it's not yet populated
-      if (scrollColumn.children.length === 0) renderScrollMode();
-    } else {
-      document.body.classList.remove('scroll-mode');
-      document.body.classList.add('codex-mode');
-      modeToggle.textContent = 'codex';
-      modeToggle.classList.remove('active');
-    }
-  }
-  modeToggle.addEventListener('click', () => {
-    setMode(document.body.classList.contains('scroll-mode') ? 'codex' : 'scroll');
-  });
-
-  // ---- Resize: re-paginate (debounced) ------------------------------
+  // ---- Resize: re-paginate (debounced) -----------------------------
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
@@ -592,10 +579,6 @@
       if (currentSpread >= spreads.length) currentSpread = spreads.length - 1;
       buildTabula();
       renderSpread(null);
-      if (document.body.classList.contains('scroll-mode')) {
-        scrollColumn.innerHTML = '';
-        renderScrollMode();
-      }
     }, 200);
   });
 
@@ -613,7 +596,7 @@
     return -1;
   }
 
-  // ---- First render --------------------------------------------------
+  // ---- First render -----------------------------------------------
   buildTabula();
   renderSpread(null);
   loading.classList.add('gone');
