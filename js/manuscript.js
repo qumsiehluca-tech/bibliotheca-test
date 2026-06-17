@@ -147,7 +147,7 @@
     const pages = [];
     let pageBlocks = [];
 
-    const SAFETY = 10;
+    const SAFETY = 18;
     const padBot = parseFloat(getComputedStyle(measure).paddingBottom) || 0;
     const boxR   = measure.getBoundingClientRect();
     const limitY = boxR.bottom - padBot - SAFETY;
@@ -292,6 +292,161 @@
 
   let contentPages = paginate();
 
+  // ---- Even out short section-ending pages ---------------------------
+  // "Each chapter starts a new page" can leave an orphan line or two on the
+  // page that ends the previous section. Real books avoid that. When a
+  // section's final page is very short, we re-flow that section's last two
+  // pages so the text splits evenly across both — no orphan lines, no
+  // half-empty page before a new Liber.
+  function rebalanceSectionEnds() {
+    // Identify the index of every page that contains a chapter-title.
+    const chapterPageIdx = new Set();
+    contentPages.forEach((pg, i) => {
+      if (pg.some(b => b.type === 'chapter-title')) chapterPageIdx.add(i);
+    });
+
+    const measure = makeMeasureBox();
+    document.body.appendChild(measure);
+    sizeMeasureBox(measure);
+    const padBot = parseFloat(getComputedStyle(measure).paddingBottom) || 0;
+    const boxR = measure.getBoundingClientRect();
+    const limitY = boxR.bottom - padBot - 10;
+    const fullHeight = limitY - boxR.top;
+
+    function pageContentHeight(blocks) {
+      measure.innerHTML = '';
+      blocks.forEach(b => measure.appendChild(blockToNode(b)));
+      const last = measure.lastElementChild;
+      if (!last) return 0;
+      return last.getBoundingClientRect().bottom - boxR.top;
+    }
+    function blocksAreSplittable(blocks) {
+      // Only safe to re-flow plain paragraph runs (no chapter title / verse
+      // / rule, which have their own placement rules).
+      return blocks.every(b => b.type === 'paragraph');
+    }
+
+    // Walk sections: a section ends at the page just before a chapter page
+    // (or the final page). For each section-ending page that is short and
+    // preceded by a full page of plain paragraphs, re-flow the two together.
+    for (let i = 1; i < contentPages.length; i++) {
+      const isLastOfSection =
+        chapterPageIdx.has(i + 1) || i === contentPages.length - 1;
+      if (!isLastOfSection) continue;
+      if (chapterPageIdx.has(i)) continue; // page itself starts a chapter
+
+      const endPage = contentPages[i];
+      const prevPage = contentPages[i - 1];
+      if (chapterPageIdx.has(i - 1)) continue; // prev page opens a chapter — leave it
+
+      const endHeight = pageContentHeight(endPage);
+      // Short = under 45% of the text block.
+      if (endHeight > fullHeight * 0.45) continue;
+      if (!blocksAreSplittable(endPage) || !blocksAreSplittable(prevPage)) continue;
+
+      // Combine the two pages' blocks. If the last paragraph of prevPage was
+      // split (its continuation is the first block of endPage), merge them
+      // back into one paragraph so the re-flow doesn't leave a short tail.
+      const prevCopy = prevPage.slice();
+      const endCopy = endPage.slice();
+      if (
+        endCopy.length > 0 && endCopy[0].type === 'paragraph' && endCopy[0].continuation &&
+        prevCopy.length > 0 && prevCopy[prevCopy.length - 1].type === 'paragraph'
+      ) {
+        const head = prevCopy[prevCopy.length - 1];
+        const tail = endCopy.shift();
+        prevCopy[prevCopy.length - 1] = {
+          type: 'paragraph',
+          text: head.text + ' ' + tail.text,
+          dropcap: head.dropcap,
+          continuation: head.continuation,
+        };
+      }
+      const combined = prevCopy.concat(endCopy);
+
+      // Re-flow combined across two pages. Aim to fill the FIRST page to the
+      // halfway point of the combined text, splitting a paragraph mid-way if
+      // needed, so both pages are about equally full. Never exceed the hard
+      // page limit on the first page.
+      const totalHeight = pageContentHeight(combined);
+      const target = boxR.top + totalHeight / 2;
+
+      const first = [];
+      const second = [];
+      measure.innerHTML = '';
+      const queue2 = combined.slice();
+      let filledFirst = false;
+
+      while (queue2.length > 0) {
+        const b = queue2.shift();
+        if (filledFirst) { second.push(b); continue; }
+
+        const node = blockToNode(b);
+        measure.appendChild(node);
+        const bottom = node.getBoundingClientRect().bottom;
+
+        if (bottom <= target || first.length === 0) {
+          // Still under the halfway target (or first block) — keep on page 1,
+          // but make sure we never blow past the hard limit.
+          if (bottom > limitY && first.length > 0) {
+            // Overflowed the physical page — split this paragraph.
+            measure.removeChild(node);
+            if (b.type === 'paragraph') {
+              const split = splitParagraphToFit(b, measure, limitY);
+              if (split.fitText) {
+                first.push({ type:'paragraph', text:split.fitText, dropcap:b.dropcap, continuation:b.continuation });
+                if (split.restText)
+                  second.push({ type:'paragraph', text:split.restText, dropcap:false, continuation:true });
+              } else {
+                second.push(b);
+              }
+            } else {
+              second.push(b);
+            }
+            filledFirst = true;
+          } else {
+            first.push(b);
+          }
+        } else {
+          // Crossed the halfway target — split the paragraph here so page 1
+          // ends near the midpoint instead of dumping the whole block over.
+          measure.removeChild(node);
+          if (b.type === 'paragraph') {
+            const split = splitParagraphToFit(b, measure, target);
+            if (split.fitText) {
+              first.push({ type:'paragraph', text:split.fitText, dropcap:b.dropcap, continuation:b.continuation });
+              if (split.restText)
+                second.push({ type:'paragraph', text:split.restText, dropcap:false, continuation:true });
+            } else {
+              second.push(b);
+            }
+          } else {
+            second.push(b);
+          }
+          filledFirst = true;
+        }
+      }
+
+      if (first.length > 0 && second.length > 0) {
+        // Safety: make sure the SECOND page actually fits on one page. If the
+        // re-flow would overflow it, abort this rebalance and leave the
+        // original pagination untouched (a short section-end page is better
+        // than an overflowing one). Leave one line of clearance so the final
+        // line never grazes the bottom margin.
+        const lineH = parseFloat(getComputedStyle(measure).lineHeight) || 24;
+        const safeLimit = (limitY - boxR.top) - lineH;
+        const firstFits  = pageContentHeight(first)  <= safeLimit;
+        const secondFits = pageContentHeight(second) <= safeLimit;
+        if (firstFits && secondFits) {
+          contentPages[i - 1] = first;
+          contentPages[i] = second;
+        }
+      }
+    }
+    document.body.removeChild(measure);
+  }
+  rebalanceSectionEnds();
+
   // ---- Spread list ---------------------------------------------------
   function buildSpreads() {
     const spreads = [];
@@ -359,51 +514,14 @@
     `;
   }
 
-  // ---- Spread balance ("feathering") --------------------------------
-  // Make both pages of a spread end at the same baseline by distributing
-  // a little extra margin among paragraphs on the shorter page.
+  // ---- Spread balance ------------------------------------------------
+  // Pagination + the section-end rebalance already make every page full
+  // with perfectly uniform paragraph spacing (Google-Docs-like). We do NOT
+  // stretch gaps between paragraphs — that always looks broken. This just
+  // clears any stale inline margins from a previous render.
   function balanceSpread(spreadEl) {
-    const pages = Array.from(spreadEl.querySelectorAll('.page')).filter(p =>
-      !p.classList.contains('blank-verso') &&
-      !p.classList.contains('frontispiece') &&
-      !p.classList.contains('placeholder-page') &&
-      !p.classList.contains('epilogue-prelude')
-    );
-    if (pages.length !== 2) return;
-
-    function bottomOfContent(page) {
-      const children = Array.from(page.children).filter(c => !c.classList.contains('folio'));
-      if (children.length === 0) return page.getBoundingClientRect().top;
-      let max = -Infinity;
-      for (const c of children) {
-        const b = c.getBoundingClientRect().bottom;
-        if (b > max) max = b;
-      }
-      return max;
-    }
-
-    // Reset any prior feathering first.
-    for (const p of pages) {
-      p.querySelectorAll('p, .verse, .chapter-block').forEach(el => {
-        el.style.marginBottom = '';
-      });
-    }
-    // Force a layout flush.
-    void spreadEl.offsetWidth;
-
-    const a = bottomOfContent(pages[0]);
-    const b = bottomOfContent(pages[1]);
-    const diff = Math.abs(a - b);
-    if (diff < 3) return;
-
-    const shorter = a < b ? pages[0] : pages[1];
-    const targets = Array.from(shorter.querySelectorAll('p, .verse, .chapter-block'));
-    if (targets.length === 0) return;
-
-    const perItem = diff / targets.length;
-    targets.forEach(el => {
-      const cur = parseFloat(getComputedStyle(el).marginBottom) || 0;
-      el.style.marginBottom = `${cur + perItem}px`;
+    spreadEl.querySelectorAll('p, .verse, .chapter-block').forEach(el => {
+      el.style.marginBottom = '';
     });
   }
 
@@ -660,6 +778,7 @@
     resizeTimer = setTimeout(() => {
       const previousChapterIdx = findChapterIdxBySpread(currentSpread);
       contentPages = paginate();
+      rebalanceSectionEnds();
       spreads = buildSpreads();
       if (previousChapterIdx >= 0) {
         for (let p = 0; p < contentPages.length; p++) {
