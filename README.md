@@ -57,10 +57,10 @@ Conventions in detail:
 - A line that is exactly `*text*` (a single star at each end, no blank
   lines inside) is a verse line. Consecutive verse lines form a centred
   italic verse block.
-- `**word**` makes a word bold (works inside paragraphs *and* inside verse
-  lines).
-- `*word*` makes a word italic (only inside paragraphs — verse lines are
-  already italic).
+- `**word**` — the markers are stripped (no bolding). If you want emphasis
+  inside a paragraph, use `*word*` for italics.
+- `*word*` makes a word italic. Verse lines are italic by default; you
+  don't need to wrap individual words.
 - `<br>` forces a line break inside a paragraph or verse line.
 - `<hr>` or `---` on its own line is a decorative horizontal rule.
 - The first paragraph of every chapter automatically gets the big red

@@ -122,7 +122,12 @@
     );
     out = out.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     out = out.replace(/\u0001(\d+)\u0001/g, (_, i) => tokens[+i]);
-    out = out.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+    // 4) Inline marks. Per user request: **X** is NOT rendered as bold —
+    //    the markers are stripped and the text passes through. Italic `*X*`
+    //    is still honored inside paragraphs. Any stray `**` from orphan
+    //    markers is removed too.
+    out = out.replace(/\*\*([^*\n]+?)\*\*/g, '$1');
+    out = out.replace(/\*\*/g, '');
     out = out.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
     out = wrapScript(out, GREEK_RE,  'greek');
     out = wrapScript(out, ARABIC_RE, 'arabic');

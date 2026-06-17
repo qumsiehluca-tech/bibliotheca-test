@@ -174,6 +174,14 @@
       }
 
       if (b.type === 'verse' || b.type === 'chapter-title' || b.type === 'rule') {
+        // CHAPTER TITLES ALWAYS BEGIN A NEW PAGE (except at the start
+        // of the book, where the page is already empty).
+        if (b.type === 'chapter-title' && pageBlocks.length > 0) {
+          flush();
+          queue.unshift(b);
+          continue;
+        }
+
         const node = blockToNode(b);
         measure.appendChild(node);
         if (!fits()) {
@@ -320,29 +328,26 @@
   }
 
   // ---- Frontispiece + prelude rendering ------------------------------
-  function renderFrontispiece(forDoc) {
+  function renderFrontispiece() {
     const f = manifest.frontispiece || {};
     const parts = [];
-    if (forDoc) parts.push(`<div class="doc-frontispiece">`);
     if (f.coatOfArms) {
       parts.push(`<img class="coa" src="assets/coat-of-arms.png" alt="">`);
     }
-    if (!forDoc) parts.push(`<img class="fp-fleuron" src="assets/ornaments/fleuron.svg" alt="">`);
-    parts.push(`<h1 class="${forDoc ? 'doc-title' : 'fp-title'}">${escapeHTML(manifest.title || '')}</h1>`);
+    parts.push(`<img class="fp-fleuron" src="assets/ornaments/fleuron.svg" alt="">`);
+    parts.push(`<h1 class="fp-title">${escapeHTML(manifest.title || '')}</h1>`);
     if (f.subtitle) {
       const sub = String(f.subtitle).toLowerCase();
       parts.push(`<div class="fp-subtitle">${escapeHTML(sub)}</div>`);
     }
-    if (!forDoc) parts.push(`<img class="fp-rule" src="assets/ornaments/divider.svg" alt="">`);
+    parts.push(`<img class="fp-rule" src="assets/ornaments/divider.svg" alt="">`);
     if (f.date)   parts.push(`<div class="fp-date">${escapeHTML(f.date)}</div>`);
     if (f.footer) parts.push(`<div class="fp-footer">${escapeHTML(f.footer)}</div>`);
-    if (forDoc) parts.push(`</div>`);
     return parts.join('');
   }
 
-  function renderEpiloguePrelude(forDoc) {
-    // Short, dignified prelude per the user's wording.
-    const inner = `
+  function renderEpiloguePrelude() {
+    return `
       <h2 class="prelude-rubric">Lectori</h2>
       <img class="prelude-divider" src="assets/ornaments/divider.svg" alt="">
       <div class="prelude-body">
@@ -352,19 +357,65 @@
       </div>
       <img class="prelude-fleuron" src="assets/ornaments/fleuron.svg" alt="">
     `;
-    if (forDoc) return `<div class="doc-epilogue-prelude">${inner}</div>`;
-    return inner;
+  }
+
+  // ---- Spread balance ("feathering") --------------------------------
+  // Make both pages of a spread end at the same baseline by distributing
+  // a little extra margin among paragraphs on the shorter page.
+  function balanceSpread(spreadEl) {
+    const pages = Array.from(spreadEl.querySelectorAll('.page')).filter(p =>
+      !p.classList.contains('blank-verso') &&
+      !p.classList.contains('frontispiece') &&
+      !p.classList.contains('placeholder-page') &&
+      !p.classList.contains('epilogue-prelude')
+    );
+    if (pages.length !== 2) return;
+
+    function bottomOfContent(page) {
+      const children = Array.from(page.children).filter(c => !c.classList.contains('folio'));
+      if (children.length === 0) return page.getBoundingClientRect().top;
+      let max = -Infinity;
+      for (const c of children) {
+        const b = c.getBoundingClientRect().bottom;
+        if (b > max) max = b;
+      }
+      return max;
+    }
+
+    // Reset any prior feathering first.
+    for (const p of pages) {
+      p.querySelectorAll('p, .verse, .chapter-block').forEach(el => {
+        el.style.marginBottom = '';
+      });
+    }
+    // Force a layout flush.
+    void spreadEl.offsetWidth;
+
+    const a = bottomOfContent(pages[0]);
+    const b = bottomOfContent(pages[1]);
+    const diff = Math.abs(a - b);
+    if (diff < 3) return;
+
+    const shorter = a < b ? pages[0] : pages[1];
+    const targets = Array.from(shorter.querySelectorAll('p, .verse, .chapter-block'));
+    if (targets.length === 0) return;
+
+    const perItem = diff / targets.length;
+    targets.forEach(el => {
+      const cur = parseFloat(getComputedStyle(el).marginBottom) || 0;
+      el.style.marginBottom = `${cur + perItem}px`;
+    });
   }
 
   // ---- Codex rendering -----------------------------------------------
   function renderPageHTML(page, side, folio) {
     if (!page || page.type === 'blank') return `<div class="page ${side} blank-verso"></div>`;
-    if (page.type === 'frontispiece') return `<div class="page ${side} frontispiece">${renderFrontispiece(false)}</div>`;
+    if (page.type === 'frontispiece') return `<div class="page ${side} frontispiece">${renderFrontispiece()}</div>`;
     if (page.type === 'placeholder') return `<div class="page ${side} placeholder-page">
         <div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>
       </div>`;
     if (page.blocks && page.blocks.length === 1 && page.blocks[0].type === 'epilogue-prelude') {
-      return `<div class="page ${side} epilogue-prelude">${renderEpiloguePrelude(false)}</div>`;
+      return `<div class="page ${side} epilogue-prelude">${renderEpiloguePrelude()}</div>`;
     }
     const tmp = document.createElement('div');
     (page.blocks || []).forEach(b => tmp.appendChild(blockToNode(b)));
@@ -386,10 +437,12 @@
         spread.innerHTML = versoHTML + rectoHTML;
         spread.classList.remove('turning-out');
         spread.classList.add('turning-in');
+        requestAnimationFrame(() => balanceSpread(spread));
         setTimeout(() => spread.classList.remove('turning-in'), 320);
       }, 230);
     } else {
       spread.innerHTML = versoHTML + rectoHTML;
+      requestAnimationFrame(() => balanceSpread(spread));
     }
 
     prevBtn.disabled = currentSpread <= 0;
@@ -397,55 +450,47 @@
   }
 
   // ---- Doc-view rendering --------------------------------------------
-  // Continuous scroll, docx-style. One <div class="doc-page"> for the
-  // frontispiece, one for the body (with every chapter inline), one for
-  // the epilogue prelude (if present), and one more for the epilogue body
-  // (so each "section" is its own full-length docx-style page).
+  // scriptum = the SAME paginated folios from codex mode, stacked top-to-
+  // bottom in a scrollable column. Looks like the codex's individual pages
+  // taken out of the spread and lined up — easy on memory because we reuse
+  // the same paginated chunks instead of rendering all chapters as one
+  // giant page.
   function renderDocMode() {
-    if (docColumn.children.length > 0) return; // only build once
+    if (docColumn.children.length > 0) return;
 
-    // 1) Frontispiece page
-    const fpPage = document.createElement('div');
-    fpPage.className = 'doc-page';
-    fpPage.innerHTML = renderFrontispiece(true);
-    docColumn.appendChild(fpPage);
+    // Frontispiece
+    const fp = document.createElement('div');
+    fp.className = 'page recto frontispiece doc-folio';
+    fp.innerHTML = renderFrontispiece();
+    docColumn.appendChild(fp);
 
     if (isPlaceholder) {
       const ph = document.createElement('div');
-      ph.className = 'doc-page';
-      ph.innerHTML = '<div class="placeholder-note" style="text-align:center;margin-top:6em;"><em>Liber nondum scriptus est.</em></div>';
+      ph.className = 'page recto placeholder-page doc-folio';
+      ph.innerHTML = '<div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>';
       docColumn.appendChild(ph);
       return;
     }
 
-    // 2) Walk chapters; before the Epilogue, emit a prelude page, then the
-    //    Epilogue body on its own page. Everything else into the main page.
-    let mainPage = document.createElement('div');
-    mainPage.className = 'doc-page';
-    docColumn.appendChild(mainPage);
-
-    content.chapters.forEach((ch) => {
-      if (isEpilogueTitle(ch.title)) {
-        // Close out the main page
-        if (!mainPage.hasChildNodes()) docColumn.removeChild(mainPage);
-        // Prelude page
-        const prePage = document.createElement('div');
-        prePage.className = 'doc-page';
-        prePage.innerHTML = renderEpiloguePrelude(true);
-        docColumn.appendChild(prePage);
-        // Start a new page for the epilogue itself
-        mainPage = document.createElement('div');
-        mainPage.className = 'doc-page';
-        docColumn.appendChild(mainPage);
+    // Every paginated folio, one after another
+    for (let i = 0; i < contentPages.length; i++) {
+      const blocks = contentPages[i];
+      const isPrelude =
+        blocks.length === 1 && blocks[0].type === 'epilogue-prelude';
+      const page = document.createElement('div');
+      page.className = 'page recto doc-folio';
+      if (isPrelude) {
+        page.classList.add('epilogue-prelude');
+        page.innerHTML = renderEpiloguePrelude();
+      } else {
+        blocks.forEach(b => page.appendChild(blockToNode(b)));
+        const folio = document.createElement('div');
+        folio.className = 'folio';
+        folio.textContent = `fol. ${toRoman(i + 1)}`;
+        page.appendChild(folio);
       }
-      // Chapter title + divider
-      const block = blockToNode({ type: 'chapter-title', title: ch.title, anchor: `ch-doc-${ch.title}` });
-      mainPage.appendChild(block);
-      // Body blocks
-      ch.blocks.forEach((b) => {
-        mainPage.appendChild(blockToNode(b));
-      });
-    });
+      docColumn.appendChild(page);
+    }
   }
 
   // ---- TABVLA --------------------------------------------------------
