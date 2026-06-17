@@ -1,7 +1,5 @@
 /* =========================================================
    Bibliotheca Publica Varona — book-loader.js
-   Shared utilities: load registry, manifests, content; parse;
-   render inline spans (italic/bold/Greek/Arabic + <br>, <hr>).
    ========================================================= */
 
 (function (global) {
@@ -10,7 +8,6 @@
   const Loader = {};
 
   // ---- Data fetching --------------------------------------------------
-
   Loader.loadLibrary = async function () {
     const res = await fetch('data/library.json');
     if (!res.ok) throw new Error('library.json missing');
@@ -33,23 +30,10 @@
   };
 
   // ---- Parser ---------------------------------------------------------
-  //   `## Heading`               → chapter heading
-  //   `*line*` alone on its own block → verse line (verse-line content may
-  //                                      itself contain `**word**` bold markers)
-  //   `---` on its own line      → horizontal rule (decorative break)
-  //   anything else              → paragraph
-  //
-  // Inside a paragraph or verse line, inline marks recognised by renderInline:
-  //   **bold**     → <strong>bold</strong>
-  //   *italic*     → <em>italic</em>
-  //   <br>         → line break
-  //   <hr>         → horizontal rule
-  //   Greek / Arabic script gets a `.greek` / `.arabic` wrapper
 
   Loader.parseContent = function (md) {
     const lines = md.replace(/\r\n/g, '\n').split('\n');
 
-    // Chunk by blank lines.
     const rawBlocks = [];
     let buf = [];
     for (const line of lines) {
@@ -61,10 +45,8 @@
     }
     if (buf.length) rawBlocks.push(buf.join('\n'));
 
-    // Verse line = a single-line block whose first and last non-space chars
-    // are both '*' (allows `**bold**` markers inside).
-    const HEADING    = /^## (.+)$/;
-    const HR_LINE    = /^[-*_]{3,}$/;
+    const HEADING = /^## (.+)$/;
+    const HR_LINE = /^[-*_]{3,}$/;
     const isSingleLineVerse = (s) =>
       !s.includes('\n') &&
       s.length >= 3 &&
@@ -116,7 +98,6 @@
     }
     flushVerse();
 
-    // Mark first paragraph of each chapter for drop-cap rendering.
     for (const ch of chapters) {
       const firstP = ch.blocks.find(b => b.type === 'paragraph');
       if (firstP) firstP.dropcap = true;
@@ -127,50 +108,24 @@
 
   // ---- Inline span rendering -----------------------------------------
 
-  // We keep Greek wrapping (in case the user wants to swap the Greek face
-  // later) but the default CSS now inherits the body font (EB Garamond),
-  // which has polytonic glyphs.
   const GREEK_RE  = /[\u0370-\u03FF\u1F00-\u1FFF][\u0300-\u036F\u0370-\u03FF\u1F00-\u1FFF\u0020]*[\u0370-\u03FF\u1F00-\u1FFF]?/g;
   const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F][\u0600-\u06FF\u0750-\u077F\u064B-\u065F]*/g;
 
-  // Allowed inline HTML tags that pass through unescaped. Use temporary
-  // sentinels to protect them while we HTML-escape the rest.
-  const PASSTHROUGH_TAGS = [
-    'br', 'hr',
-    'em', 'strong', 'i', 'b',
-    'sup', 'sub',
-    'small'
-  ];
+  const PASSTHROUGH_TAGS = ['br', 'hr', 'em', 'strong', 'i', 'b', 'sup', 'sub', 'small'];
 
   Loader.renderInline = function (text) {
-    // 1) Stash allowed tags as sentinels so they survive HTML escaping.
     const tokens = [];
-    const stash = (html) => {
-      tokens.push(html);
-      return `\u0001${tokens.length - 1}\u0001`;
-    };
+    const stash = (html) => { tokens.push(html); return `\u0001${tokens.length - 1}\u0001`; };
     let out = text.replace(
       new RegExp(`<\\s*/?\\s*(${PASSTHROUGH_TAGS.join('|')})(\\s[^>]*)?\\s*/?\\s*>`, 'gi'),
       (m) => stash(m)
     );
-
-    // 2) Escape remaining HTML.
-    out = out
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    // 3) Restore the stashed tags.
+    out = out.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     out = out.replace(/\u0001(\d+)\u0001/g, (_, i) => tokens[+i]);
-
-    // 4) Markdown-ish inline marks. Bold FIRST so `**` is consumed before `*`.
     out = out.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
     out = out.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-
-    // 5) Script wrappers (won't break HTML tags).
     out = wrapScript(out, GREEK_RE,  'greek');
     out = wrapScript(out, ARABIC_RE, 'arabic');
-
     return out;
   };
 
@@ -181,10 +136,65 @@
     });
   }
 
-  // ---- Cover rendering (legacy; covers are now PNGs but kept for safety) --
+  // ---- Cover rendering -----------------------------------------------
+  // CSS-based top-view of a leather book (original design).
+
   Loader.renderCoverHTML = function (manifest) {
-    return `<img class="cover-img" src="assets/covers/${manifest.id}.png" alt="">`;
+    const cov = manifest.cover || {};
+    const leather  = (cov.leather  || 'oxblood').replace(/\s+/g,'-');
+    const ornament = cov.ornament || 'none';
+    const wear     = cov.wear     || 'none';
+    const title    = (manifest.title || '');
+    // Break title onto one word per line for the small format
+    const titleHTML = title.toUpperCase().split(/\s+/).filter(Boolean).join('<br>');
+    const orn = ornamentSVG(ornament);
+
+    return `
+      <div class="cover" data-leather="${leather}" data-wear="${wear}">
+        <div class="cover-title">${titleHTML}</div>
+        ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
+        <div class="cover-wear"></div>
+      </div>
+    `;
   };
+
+  function ornamentSVG(name) {
+    const gilt = '#c8a14a';
+    const giltLight = '#e6c66b';
+    switch (name) {
+      case 'cross':
+        return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <g fill="${gilt}" stroke="${giltLight}" stroke-width="0.5">
+            <rect x="17" y="6"  width="6" height="28"/>
+            <rect x="6"  y="17" width="28" height="6"/>
+          </g></svg>`;
+      case 'fleur-de-lis':
+        return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <g fill="${gilt}" stroke="${giltLight}" stroke-width="0.4">
+            <path d="M20 4 C 16 12, 10 16, 10 22 C 10 27, 16 28, 20 26
+                     C 24 28, 30 27, 30 22 C 30 16, 24 12, 20 4 Z"/>
+            <rect x="11" y="24" width="18" height="2.5"/>
+            <path d="M12 28 Q 16 36, 20 38 Q 24 36, 28 28
+                     Q 24 32, 20 32 Q 16 32, 12 28 Z"/>
+          </g></svg>`;
+      case 'shield':
+        return `<svg viewBox="0 0 40 44" xmlns="http://www.w3.org/2000/svg">
+          <g fill="none" stroke="${gilt}" stroke-width="1.4">
+            <path d="M6 6 L 34 6 L 34 22 Q 34 36, 20 42 Q 6 36, 6 22 Z"/>
+            <path d="M20 12 V 32" />
+            <path d="M10 20 H 30" />
+          </g></svg>`;
+      case 'fleuron':
+        return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <g fill="${gilt}">
+            <path d="M20 6 C 14 14, 6 16, 6 22 C 6 30, 14 34, 20 30
+                     C 26 34, 34 30, 34 22 C 34 16, 26 14, 20 6 Z"/>
+            <circle cx="20" cy="22" r="2" fill="${giltLight}"/>
+          </g></svg>`;
+      default:
+        return '';
+    }
+  }
 
   global.Loader = Loader;
 

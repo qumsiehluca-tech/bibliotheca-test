@@ -1,134 +1,157 @@
 # Bibliotheca Publica Varona
 
 A personal Latin library website styled as an 18th-century national library.
-Static site — no build step, no JavaScript framework, no database.
+Static site — no build step, no framework, no database.
 
-## Structure
+## Folder layout
 
 ```
-/index.html              — library landing (desk + carousel of book covers)
-/manuscript.html         — book reader
-/css/                    — library.css, manuscript.css
-/js/                     — book-loader.js, library.js, manuscript.js
-/assets/fonts/           — Canterbury.ttf
-/assets/covers/          — one PNG per book (cover, top-down view)
-/assets/                 — library.jpg, coat-of-arms.png, ornaments
-/data/library.json       — registry of book IDs (in carousel order)
-/books/<slug>/manifest.json   — book metadata
-/books/<slug>/content.md      — book text in light markdown
+index.html                — library landing (desk + carousel)
+manuscript.html           — book reader
+css/                      — library.css, manuscript.css
+js/                       — book-loader.js, library.js, manuscript.js
+assets/fonts/             — Canterbury.ttf, eb-garamond/*.ttf (bundled)
+assets/                   — library.jpg, coat-of-arms.png, ornaments/
+data/library.json         — registry of book IDs (carousel order)
+books/<slug>/manifest.json — book metadata
+books/<slug>/content.md    — book text (this is what you edit)
 ```
 
-## Reading controls
+## Editing the book — the file is `books/<slug>/content.md`
 
-- **Scroll wheel** — wheel down → next page (spread), wheel up → previous
-- **Arrow keys / Space / PageUp-PageDown** — turn pages
-- **Touch swipe** (mobile) — swipe up/left for next, down/right for previous
-- **Click fleurons** at the bottom corners
-- **T key** or top-right button — open TABVLA contents
-- **Esc** — close TABVLA, or return to library
+Open it in any text editor (Notepad, VS Code, Sublime Text, TextEdit, etc.).
+Save. Refresh the browser. That's the whole loop. No tools to install.
 
-## Adding or editing a book
+### Plain text rules in `content.md`
 
-Each book is a folder under `/books/`. Add it to `/data/library.json` to make
-it appear in the carousel.
+```markdown
+## Liber I
 
-### `manifest.json`
+This is a paragraph. It just flows. Blank line above and below = new
+paragraph. Inside a paragraph you can use a forced<br>line break.
+
+A new paragraph following the previous one.
+
+*This is one verse line.*
+
+*Another verse line, **with a bolded word** inside.*
+
+*A third verse line — these three group together as one centred italic
+verse block, automatically.*
+
+A paragraph after the verse.
+
+---
+
+Three dashes alone on a line = a decorative horizontal rule (fleuron).
+
+## Liber II
+
+The next chapter begins. ## (two hashes) starts every chapter.
+```
+
+Conventions in detail:
+
+- `## Title` on its own line starts a new chapter. Renders as a red
+  Canterbury rubric with a decorative divider underneath.
+- A line that is exactly `*text*` (a single star at each end, no blank
+  lines inside) is a verse line. Consecutive verse lines form a centred
+  italic verse block.
+- `**word**` makes a word bold (works inside paragraphs *and* inside verse
+  lines).
+- `*word*` makes a word italic (only inside paragraphs — verse lines are
+  already italic).
+- `<br>` forces a line break inside a paragraph or verse line.
+- `<hr>` or `---` on its own line is a decorative horizontal rule.
+- The first paragraph of every chapter automatically gets the big red
+  Canterbury drop cap on its first letter. Continuations from the previous
+  page get no indent.
+- Greek (Μέγας) and Arabic (العربية) are detected automatically. Greek
+  inherits the body font — the bundled EB Garamond has full polytonic
+  glyphs (μέγας, ἕως, ἄνθρωπος, all of it).
+- If a chapter is named `Epilogvs` (or anything matching `/epilog/i`),
+  the reader inserts a "Lectori" prelude page before it automatically.
+
+### Editing the title page (manifest.json)
+
 ```json
 {
-  "id": "my-new-book",
-  "title": "Liber Vetustissimus",
-  "year": "A.D. MDCCXLI",
-  "deskPosition": 4,
+  "id": "vita-caii-aetii-maronis",
+  "title": "Vita Caii Aetii Maronis",
+  "year":  "A.D. DCCXXXIV",
+  "deskPosition": 3,
   "cover": { "leather": "oxblood", "ornament": "shield", "wear": "light" },
   "frontispiece": {
     "coatOfArms": true,
-    "subtitle": "LIBRI III",
-    "date":     "A.D. MDCCXLI",
-    "footer":   "hic fuit"
+    "subtitle":   "LIBRI VII",
+    "date":       "A.D. DCCXXXIV",
+    "footer":     "hic fuit"
   },
   "contentFile": "content.md",
   "turnStyle":   "fade"
 }
 ```
 
-The title is rendered **verbatim** on the frontispiece (Canterbury blackletter,
-no case transformation). Whatever case you write — `Vita Caii Aetii Maronis`
-or `VITA CAII AETII MARONIS` — is what appears. The subtitle is lowercased
-to match the blackletter aesthetic.
+The title is rendered exactly as you write it (Canterbury blackletter on
+the frontispiece, Cinzel gilt on the cover). The subtitle is lowercased
+for the blackletter aesthetic. Leather options: `oxblood`, `dark-green`,
+`tan`, `midnight-blue`, `vellum-cream`, `black`. Ornament options: `none`,
+`cross`, `fleur-de-lis`, `shield`, `fleuron`.
 
-### `content.md`
+To add a brand-new book: make a folder under `books/`, write a
+`manifest.json` and a `content.md`, then add the new slug to
+`data/library.json` in the order you want it to appear in the carousel.
 
-```
-## Liber I
+## Reading controls
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...
-
-*Verse line one*
-
-*Verse line **two** with a bold word*
-
-*Verse line three*
-
-A new paragraph.<br>Forced line break in the middle.
-
----
-
-Three or more dashes alone on a line = decorative horizontal rule.
-
-## Liber II
-
-Greek and Arabic scripts are preserved inline: μέγας, العربي.
-```
-
-Conventions:
-
-- `## Liber I`, `## Liber II`, …, `## Epilogvs` start chapters; the title
-  renders as a red Canterbury rubric with a fleuron divider beneath.
-- A line of the form `*text*` alone (with blank lines around it) is a verse
-  line. Consecutive verse lines group into a centred italic verse block.
-- Inside a verse line or paragraph, `**word**` makes a word bold.
-- `<br>` inserts a line break inside a paragraph or verse line.
-- `<hr>` inserts a decorative rule.
-- `---` (three or more dashes on their own line) is the same decorative rule.
-- The first paragraph of each chapter automatically gets an illuminated drop
-  cap (Canterbury, red). Continuations of split paragraphs get no indent.
-- Greek and Arabic scripts are wrapped automatically. Greek inherits the body
-  font (EB Garamond) which has full polytonic glyphs.
-- Books with no `## Liber X` headings show the frontispiece, then a single
-  centred-italic *Liber nondum scriptus est.* page.
-- If a chapter is named *Epilogvs* (or anything matching `/epilog/i`), it is
-  preceded by a dedicated "Lectori" prelude page in Latin inviting the reader
-  to continue.
+- **Scroll wheel** — turn pages in codex view (wheel down = next, wheel
+  up = previous). Cooldown of ~650 ms prevents skipping.
+- **Arrow keys / Space / PageUp / PageDown** — turn pages.
+- **Touch swipe** — swipe up/left for next, down/right for previous.
+- **`m` key** or the **codex / scriptum** button top-right — toggle
+  between codex (two-page spread) and doc-style continuous scroll.
+- **`t` key** or **TABVLA** button — open the table of contents.
+- **Esc** — close TABVLA or return to the library.
 
 ## Manually tuning the look
 
-The most useful knobs sit at the top of `css/manuscript.css`:
+The most useful knobs are at the top of `css/manuscript.css`:
 
 ```css
 :root {
-  --page-padding:        52px;    /* page margins */
-  --page-padding-gutter: 60px;    /* inner-edge margin (toward the spine) */
+  --page-padding:        52px;
+  --page-padding-gutter: 60px;
   --body-font-size:      clamp(13px, 0.95vw, 16px);
   --body-line-height:    1.62;
   --para-indent:         1.4em;
-  --para-spacing:        0.6em;   /* space between paragraphs */
+  --para-spacing:        0.6em;
   --chapter-title-size:  2.6em;
   --dropcap-size:        4.2em;
-  --dropcap-color:       var(--rubric);   /* deep red */
+  --dropcap-color:       var(--rubric);
 }
 ```
 
-Change any of these and the whole book restyles. The reader re-paginates
-on viewport resize, so the page count adjusts automatically.
+Change any value, save, refresh — the reader re-paginates automatically
+on every viewport resize.
 
-If you want different fonts, edit the body `font-family` in `html, body`
-(`manuscript.css`). To swap the Greek face, target `.greek`. To restyle the
-chapter titles, edit `.page .chapter-title`.
+For broader look-and-feel changes: the body font is set in
+`html, body { font-family: ... }`; the rubric red is `--rubric`; the
+paper colour is `--paper`. All in `css/manuscript.css`.
+
+## The u→v gotcha (fixed)
+
+EB Garamond ships with an OpenType `locl` (localized forms) rule that
+substitutes `u → u.LAT` (a historical V-shape) when the page language is
+Latin. Because the HTML declares `lang="la"`, the browser would render
+"ubi uxor" as "vbi vxor". The CSS now sets `font-language-override: "ENG"`
+and disables `locl`, `hist`, `hlig`, `dlig`, and `ss01`–`ss07` on the
+body, so the body text reads with normal `u` shapes while the page stays
+correctly tagged as Latin for screen readers and search engines.
 
 ## Deployment
 
 1. Push the folder to a GitHub repository.
-2. In repository settings, enable GitHub Pages from the `main` branch (root).
+2. In Settings → Pages, enable Pages from the `main` branch (root).
 3. The `.nojekyll` file disables Jekyll preprocessing.
 
 No build step.

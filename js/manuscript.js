@@ -1,16 +1,15 @@
 /* =========================================================
    Bibliotheca Publica Varona — manuscript.js
-   Reader: frontispiece, paginated two-page spreads, drop caps,
-   TABVLA, keyboard + wheel + touch navigation, epilogue prelude.
    ========================================================= */
 
 (async function () {
   'use strict';
 
-  // ---- DOM hooks -----------------------------------------------------
   const reader        = document.getElementById('reader');
   const spread        = document.getElementById('spread');
   const spreadFrame   = document.getElementById('spreadFrame');
+  const docFrame      = document.getElementById('docFrame');
+  const docColumn     = document.getElementById('docColumn');
   const prevBtn       = document.getElementById('prevSpread');
   const nextBtn       = document.getElementById('nextSpread');
   const tabulaBtn     = document.getElementById('tabulaBtn');
@@ -19,8 +18,8 @@
   const tabulaList    = document.getElementById('tabulaList');
   const backLink      = document.getElementById('backLink');
   const loading       = document.getElementById('readerLoading');
+  const modeToggle    = document.getElementById('modeToggle');
 
-  // ---- Resolve book id -----------------------------------------------
   const params = new URLSearchParams(window.location.search);
   const bookId = params.get('book');
   if (!bookId) {
@@ -28,7 +27,6 @@
     return;
   }
 
-  // ---- Load + parse content ------------------------------------------
   let manifest, content;
   try {
     const result = await Loader.loadContent(bookId);
@@ -41,9 +39,7 @@
   }
 
   document.title = manifest.title || 'Manuscriptum';
-  spread.dataset.turnStyle = manifest.turnStyle || 'fade';
 
-  // ---- Wait for Canterbury + body fonts to actually load ------------
   if (document.fonts) {
     try {
       await Promise.all([
@@ -51,14 +47,12 @@
         document.fonts.load('1em "EB Garamond"'),
         document.fonts.load('italic 1em "EB Garamond"'),
         document.fonts.load('600 1em "EB Garamond"'),
-        document.fonts.load('1em "Cinzel"'),
-        document.fonts.load('1em "Cormorant Garamond"'),
       ]);
       if (document.fonts.ready) await document.fonts.ready;
-    } catch (_) { /* sandboxes may block CDN — carry on */ }
+    } catch (_) {}
   }
 
-  // ---- Build the linear block list ----------------------------------
+  // ---- Build the block list ------------------------------------------
   const blocks = [];
   const isEpilogueTitle = t => /epilog/i.test(t || '');
 
@@ -66,12 +60,7 @@
     if (isEpilogueTitle(ch.title)) {
       blocks.push({ type: 'epilogue-prelude', anchor: `prelude-${ci}` });
     }
-    blocks.push({
-      type:    'chapter-title',
-      title:   ch.title,
-      anchor:  `ch-${ci}`,
-      isFirst: ci === 0
-    });
+    blocks.push({ type: 'chapter-title', title: ch.title, anchor: `ch-${ci}`, isFirst: ci === 0 });
     ch.blocks.forEach(b => blocks.push(b));
   });
   if (content.chapters.length === 0) {
@@ -80,7 +69,7 @@
 
   const isPlaceholder = content.chapters.length === 0;
 
-  // ---- Page measurement / rendering helpers --------------------------
+  // ---- Measurement helpers ------------------------------------------
 
   function makeMeasureBox() {
     const box = document.createElement('div');
@@ -93,7 +82,6 @@
     box.style.overflow = 'visible';
     return box;
   }
-
   function sizeMeasureBox(box) {
     spread.innerHTML = '<div class="page verso"></div><div class="page recto"></div>';
     void spread.offsetWidth;
@@ -124,8 +112,7 @@
       return wrap;
     }
     if (block.type === 'rule') {
-      const hr = document.createElement('hr');
-      return hr;
+      return document.createElement('hr');
     }
     if (block.type === 'verse') {
       const v = document.createElement('div');
@@ -148,7 +135,7 @@
     return document.createTextNode('');
   }
 
-  // ---- Greedy paginator ----------------------------------------------
+  // ---- Paginator (for codex mode) -----------------------------------
 
   function paginate() {
     if (isPlaceholder) return [];
@@ -160,7 +147,7 @@
     const pages = [];
     let pageBlocks = [];
 
-    const SAFETY = 6;
+    const SAFETY = 10;
     const padBot = parseFloat(getComputedStyle(measure).paddingBottom) || 0;
     const boxR   = measure.getBoundingClientRect();
     const limitY = boxR.bottom - padBot - SAFETY;
@@ -170,12 +157,8 @@
       if (!last) return true;
       return last.getBoundingClientRect().bottom <= limitY + 1;
     }
-
     const flush = () => {
-      if (pageBlocks.length > 0) {
-        pages.push(pageBlocks);
-        pageBlocks = [];
-      }
+      if (pageBlocks.length > 0) { pages.push(pageBlocks); pageBlocks = []; }
       measure.innerHTML = '';
     };
 
@@ -184,14 +167,12 @@
     while (queue.length > 0) {
       const b = queue.shift();
 
-      // Epilogue prelude — always its own page
       if (b.type === 'epilogue-prelude') {
         flush();
         pages.push([b]);
         continue;
       }
 
-      // Verse, chapter-title, rule — atomic
       if (b.type === 'verse' || b.type === 'chapter-title' || b.type === 'rule') {
         const node = blockToNode(b);
         measure.appendChild(node);
@@ -207,7 +188,6 @@
           }
           continue;
         }
-        // Orphan check for chapter titles
         if (b.type === 'chapter-title' && queue.length > 0 && pageBlocks.length > 0) {
           const next = queue[0];
           let probe = null;
@@ -233,7 +213,6 @@
         continue;
       }
 
-      // Paragraph: try whole, otherwise split by word
       if (b.type === 'paragraph') {
         const node = blockToNode(b);
         measure.appendChild(node);
@@ -245,16 +224,12 @@
         const split = splitParagraphToFit(b, measure, limitY);
         if (split.fitText) {
           const head = {
-            type: 'paragraph',
-            text: split.fitText,
-            dropcap: b.dropcap,
-            continuation: b.continuation
+            type: 'paragraph', text: split.fitText,
+            dropcap: b.dropcap, continuation: b.continuation
           };
           const tail = {
-            type: 'paragraph',
-            text: split.restText,
-            dropcap: false,
-            continuation: true
+            type: 'paragraph', text: split.restText,
+            dropcap: false, continuation: true
           };
           measure.appendChild(blockToNode(head));
           pageBlocks.push(head);
@@ -281,10 +256,7 @@
   function splitParagraphToFit(block, measure, limitY) {
     const text = block.text;
     const words = text.split(/(\s+)/);
-    const wordIndices = words
-      .map((w, i) => (/\S/.test(w) ? i : -1))
-      .filter(i => i >= 0);
-
+    const wordIndices = words.map((w, i) => (/\S/.test(w) ? i : -1)).filter(i => i >= 0);
     if (wordIndices.length === 0) return { fitText: '', restText: '' };
 
     let lo = 1, hi = wordIndices.length, bestN = 0;
@@ -293,10 +265,8 @@
       const upToTokenIndex = wordIndices[mid - 1] + 1;
       const candidateText = words.slice(0, upToTokenIndex).join('').replace(/\s+$/, '');
       const candidateNode = blockToNode({
-        type: 'paragraph',
-        text: candidateText,
-        dropcap: block.dropcap,
-        continuation: block.continuation
+        type: 'paragraph', text: candidateText,
+        dropcap: block.dropcap, continuation: block.continuation
       });
       measure.appendChild(candidateNode);
       const ok = candidateNode.getBoundingClientRect().bottom <= limitY + 1;
@@ -304,7 +274,6 @@
       if (ok) { bestN = mid; lo = mid + 1; }
       else    {              hi = mid - 1; }
     }
-
     if (bestN === 0) return { fitText: '', restText: text };
 
     const upToTokenIndex = wordIndices[bestN - 1] + 1;
@@ -315,7 +284,7 @@
 
   let contentPages = paginate();
 
-  // ---- Build spread list --------------------------------------------
+  // ---- Spread list ---------------------------------------------------
   function buildSpreads() {
     const spreads = [];
     spreads.push({ verso: { type: 'blank' }, recto: { type: 'frontispiece' } });
@@ -331,10 +300,10 @@
     }
     return spreads;
   }
-
   let spreads = buildSpreads();
   let currentSpread = 0;
 
+  // ---- Roman helpers + HTML escape -----------------------------------
   function toRoman(n) {
     if (n <= 0) return '';
     const M = ['','m','mm','mmm'];
@@ -346,64 +315,56 @@
            X[Math.floor((n%100)/10)] +
            I[n%10];
   }
-
   function escapeHTML(s) {
     return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   }
 
-  // Lowercase the subtitle (so "LIBRI VII" → "Libri vii" for Canterbury).
-  function lowerCanterbury(s) {
-    return String(s).toLowerCase();
-  }
-
-  function renderFrontispiece() {
+  // ---- Frontispiece + prelude rendering ------------------------------
+  function renderFrontispiece(forDoc) {
     const f = manifest.frontispiece || {};
     const parts = [];
+    if (forDoc) parts.push(`<div class="doc-frontispiece">`);
     if (f.coatOfArms) {
       parts.push(`<img class="coa" src="assets/coat-of-arms.png" alt="">`);
     }
-    parts.push(`<img class="fp-fleuron" src="assets/ornaments/fleuron.svg" alt="">`);
-    // Title — Canterbury, displayed exactly as written in the manifest
-    parts.push(`<h1 class="fp-title">${escapeHTML(manifest.title || '')}</h1>`);
+    if (!forDoc) parts.push(`<img class="fp-fleuron" src="assets/ornaments/fleuron.svg" alt="">`);
+    parts.push(`<h1 class="${forDoc ? 'doc-title' : 'fp-title'}">${escapeHTML(manifest.title || '')}</h1>`);
     if (f.subtitle) {
-      // Subtitle in Canterbury too, lowercased for the blackletter aesthetic
-      parts.push(`<div class="fp-subtitle">${escapeHTML(lowerCanterbury(f.subtitle))}</div>`);
+      const sub = String(f.subtitle).toLowerCase();
+      parts.push(`<div class="fp-subtitle">${escapeHTML(sub)}</div>`);
     }
-    parts.push(`<img class="fp-rule" src="assets/ornaments/divider.svg" alt="">`);
-    if (f.date) parts.push(`<div class="fp-date">${escapeHTML(f.date)}</div>`);
+    if (!forDoc) parts.push(`<img class="fp-rule" src="assets/ornaments/divider.svg" alt="">`);
+    if (f.date)   parts.push(`<div class="fp-date">${escapeHTML(f.date)}</div>`);
     if (f.footer) parts.push(`<div class="fp-footer">${escapeHTML(f.footer)}</div>`);
+    if (forDoc) parts.push(`</div>`);
     return parts.join('');
   }
 
-  function renderEpiloguePrelude() {
-    return `
+  function renderEpiloguePrelude(forDoc) {
+    // Short, dignified prelude per the user's wording.
+    const inner = `
       <h2 class="prelude-rubric">Lectori</h2>
       <img class="prelude-divider" src="assets/ornaments/divider.svg" alt="">
       <div class="prelude-body">
-        Hic verba mei desinunt.<br>
-        Quod sequitur addidit Leo, amicus,<br>
-        ut quae mihi postremo acciderint<br>
-        oblivioni non traderentur.<br><br>
-        Si vis scire, lector, perge in paginam sequentem.
+        Hic finit historia Gaii.<br><br>
+        Cetera alter scripsit tibi, lectori,<br>
+        in pagina proxima.
       </div>
       <img class="prelude-fleuron" src="assets/ornaments/fleuron.svg" alt="">
     `;
+    if (forDoc) return `<div class="doc-epilogue-prelude">${inner}</div>`;
+    return inner;
   }
 
+  // ---- Codex rendering -----------------------------------------------
   function renderPageHTML(page, side, folio) {
-    if (!page || page.type === 'blank') {
-      return `<div class="page ${side} blank-verso"></div>`;
-    }
-    if (page.type === 'frontispiece') {
-      return `<div class="page ${side} frontispiece">${renderFrontispiece()}</div>`;
-    }
-    if (page.type === 'placeholder') {
-      return `<div class="page ${side} placeholder-page">
+    if (!page || page.type === 'blank') return `<div class="page ${side} blank-verso"></div>`;
+    if (page.type === 'frontispiece') return `<div class="page ${side} frontispiece">${renderFrontispiece(false)}</div>`;
+    if (page.type === 'placeholder') return `<div class="page ${side} placeholder-page">
         <div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>
       </div>`;
-    }
     if (page.blocks && page.blocks.length === 1 && page.blocks[0].type === 'epilogue-prelude') {
-      return `<div class="page ${side} epilogue-prelude">${renderEpiloguePrelude()}</div>`;
+      return `<div class="page ${side} epilogue-prelude">${renderEpiloguePrelude(false)}</div>`;
     }
     const tmp = document.createElement('div');
     (page.blocks || []).forEach(b => tmp.appendChild(blockToNode(b)));
@@ -435,6 +396,58 @@
     nextBtn.disabled = currentSpread >= spreads.length - 1;
   }
 
+  // ---- Doc-view rendering --------------------------------------------
+  // Continuous scroll, docx-style. One <div class="doc-page"> for the
+  // frontispiece, one for the body (with every chapter inline), one for
+  // the epilogue prelude (if present), and one more for the epilogue body
+  // (so each "section" is its own full-length docx-style page).
+  function renderDocMode() {
+    if (docColumn.children.length > 0) return; // only build once
+
+    // 1) Frontispiece page
+    const fpPage = document.createElement('div');
+    fpPage.className = 'doc-page';
+    fpPage.innerHTML = renderFrontispiece(true);
+    docColumn.appendChild(fpPage);
+
+    if (isPlaceholder) {
+      const ph = document.createElement('div');
+      ph.className = 'doc-page';
+      ph.innerHTML = '<div class="placeholder-note" style="text-align:center;margin-top:6em;"><em>Liber nondum scriptus est.</em></div>';
+      docColumn.appendChild(ph);
+      return;
+    }
+
+    // 2) Walk chapters; before the Epilogue, emit a prelude page, then the
+    //    Epilogue body on its own page. Everything else into the main page.
+    let mainPage = document.createElement('div');
+    mainPage.className = 'doc-page';
+    docColumn.appendChild(mainPage);
+
+    content.chapters.forEach((ch) => {
+      if (isEpilogueTitle(ch.title)) {
+        // Close out the main page
+        if (!mainPage.hasChildNodes()) docColumn.removeChild(mainPage);
+        // Prelude page
+        const prePage = document.createElement('div');
+        prePage.className = 'doc-page';
+        prePage.innerHTML = renderEpiloguePrelude(true);
+        docColumn.appendChild(prePage);
+        // Start a new page for the epilogue itself
+        mainPage = document.createElement('div');
+        mainPage.className = 'doc-page';
+        docColumn.appendChild(mainPage);
+      }
+      // Chapter title + divider
+      const block = blockToNode({ type: 'chapter-title', title: ch.title, anchor: `ch-doc-${ch.title}` });
+      mainPage.appendChild(block);
+      // Body blocks
+      ch.blocks.forEach((b) => {
+        mainPage.appendChild(blockToNode(b));
+      });
+    });
+  }
+
   // ---- TABVLA --------------------------------------------------------
   function buildTabula() {
     tabulaList.innerHTML = '';
@@ -453,32 +466,43 @@
       const folio = pageIdx >= 0 ? toRoman(pageIdx + 1) : '';
       const li = document.createElement('li');
       li.innerHTML = `
-        <button type="button" data-spread="${spreadIdx}">${escapeHTML(ch.title)}</button>
+        <button type="button" data-spread="${spreadIdx}" data-chapter="${ci}">${escapeHTML(ch.title)}</button>
         <span class="folio-ref">fol. ${folio}</span>
       `;
       tabulaList.appendChild(li);
     });
   }
-  function openTabula()  { tabulaOverlay.classList.add('open'); }
-  function closeTabula() { tabulaOverlay.classList.remove('open'); }
+  const openTabula  = () => tabulaOverlay.classList.add('open');
+  const closeTabula = () => tabulaOverlay.classList.remove('open');
 
   tabulaBtn.addEventListener('click', openTabula);
   tabulaClose.addEventListener('click', closeTabula);
-  tabulaOverlay.addEventListener('click', (e) => {
-    if (e.target === tabulaOverlay) closeTabula();
-  });
+  tabulaOverlay.addEventListener('click', (e) => { if (e.target === tabulaOverlay) closeTabula(); });
   tabulaList.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-spread]');
     if (!btn) return;
     const s = parseInt(btn.dataset.spread, 10);
+    const ci = parseInt(btn.dataset.chapter, 10);
     closeTabula();
-    if (!Number.isNaN(s) && s >= 0 && s < spreads.length) {
+    if (document.body.classList.contains('doc-mode')) {
+      // Find the chapter title heading in the doc page and scroll to it
+      const headings = docColumn.querySelectorAll('.chapter-title');
+      const ch = content.chapters[ci];
+      if (ch) {
+        for (const h of headings) {
+          if (h.textContent === ch.title) {
+            h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      }
+    } else if (!Number.isNaN(s) && s >= 0 && s < spreads.length) {
       currentSpread = s;
       renderSpread('next');
     }
   });
 
-  // ---- Page navigation ----------------------------------------------
+  // ---- Codex navigation ----------------------------------------------
   let inTurn = false;
   function goNext() {
     if (inTurn || currentSpread >= spreads.length - 1) return;
@@ -497,10 +521,16 @@
   prevBtn.addEventListener('click', goPrev);
   nextBtn.addEventListener('click', goNext);
 
-  // Keyboard
+  // ---- Keyboard ------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     if (tabulaOverlay.classList.contains('open')) {
       if (e.key === 'Escape') closeTabula();
+      return;
+    }
+    if (document.body.classList.contains('doc-mode')) {
+      if (e.key === 'Escape')                  backLink.click();
+      else if (e.key === 't' || e.key === 'T') openTabula();
+      else if (e.key === 'm' || e.key === 'M') setMode('codex');
       return;
     }
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
@@ -511,27 +541,27 @@
       backLink.click();
     } else if (e.key === 't' || e.key === 'T') {
       openTabula();
+    } else if (e.key === 'm' || e.key === 'M') {
+      setMode('doc');
     }
   });
 
-  // ---- Scroll-wheel = turn page (cooldown to avoid skipping) --------
+  // ---- Wheel: in codex mode it turns pages; in doc mode the browser scrolls --
   let wheelCooldown = false;
   function onWheel(e) {
+    if (document.body.classList.contains('doc-mode')) return;  // let docFrame scroll naturally
     if (tabulaOverlay.classList.contains('open')) return;
     if (wheelCooldown) { e.preventDefault(); return; }
-    // Ignore very small/zero deltas (trackpad jitter)
     if (Math.abs(e.deltaY) < 8 && Math.abs(e.deltaX) < 8) return;
     e.preventDefault();
-    const forward = (Math.abs(e.deltaY) >= Math.abs(e.deltaX))
-                    ? e.deltaY > 0
-                    : e.deltaX > 0;
+    const forward = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY > 0 : e.deltaX > 0;
     if (forward) goNext(); else goPrev();
     wheelCooldown = true;
     setTimeout(() => { wheelCooldown = false; }, 650);
   }
   window.addEventListener('wheel', onWheel, { passive: false });
 
-  // ---- Touch swipe -------------------------------------------------
+  // ---- Touch swipe (codex mode only) --------------------------------
   let touchStartY = null, touchStartX = null;
   spreadFrame.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
@@ -546,21 +576,39 @@
     const dx = t.clientX - touchStartX;
     const absY = Math.abs(dy), absX = Math.abs(dx);
     if (Math.max(absY, absX) > 48) {
-      const forward = (absY > absX) ? dy < 0 : dx < 0;  // swipe up OR left = next
+      const forward = absY > absX ? dy < 0 : dx < 0;
       if (forward) goNext(); else goPrev();
     }
-    touchStartY = null;
-    touchStartX = null;
+    touchStartY = null; touchStartX = null;
   }, { passive: true });
 
-  // ---- Back to library --------------------------------------------
+  // ---- Back to library ----------------------------------------------
   backLink.addEventListener('click', (e) => {
     e.preventDefault();
     reader.classList.add('leaving');
     setTimeout(() => { window.location.href = 'index.html'; }, 880);
   });
 
-  // ---- Resize: re-paginate (debounced) -----------------------------
+  // ---- Mode toggle --------------------------------------------------
+  function setMode(mode) {
+    if (mode === 'doc') {
+      document.body.classList.remove('codex-mode');
+      document.body.classList.add('doc-mode');
+      modeToggle.textContent = 'scriptum';
+      modeToggle.classList.add('active');
+      renderDocMode();
+    } else {
+      document.body.classList.remove('doc-mode');
+      document.body.classList.add('codex-mode');
+      modeToggle.textContent = 'codex';
+      modeToggle.classList.remove('active');
+    }
+  }
+  modeToggle.addEventListener('click', () => {
+    setMode(document.body.classList.contains('doc-mode') ? 'codex' : 'doc');
+  });
+
+  // ---- Resize: re-paginate codex (debounced) ------------------------
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
@@ -581,7 +629,6 @@
       renderSpread(null);
     }, 200);
   });
-
   function findChapterIdxBySpread(spreadIdx) {
     if (spreadIdx === 0) return -1;
     const pageRange = [(spreadIdx - 1) * 2, (spreadIdx - 1) * 2 + 1];
@@ -596,7 +643,7 @@
     return -1;
   }
 
-  // ---- First render -----------------------------------------------
+  // ---- First render -------------------------------------------------
   buildTabula();
   renderSpread(null);
   loading.classList.add('gone');

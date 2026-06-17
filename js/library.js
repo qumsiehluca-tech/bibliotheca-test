@@ -32,12 +32,11 @@
   }
   if (idx >= manifests.length) idx = 0;
 
-  // Preload all cover PNGs so the carousel slides are instant.
-  manifests.forEach(m => { const im = new Image(); im.src = `assets/covers/${m.id}.png`; });
+  // Cover is now CSS-rendered via Loader.renderCoverHTML — no PNG preload needed.
 
   function renderCurrent(direction) {
     const m = manifests[idx];
-    deskBook.innerHTML = `<img class="cover-img" src="assets/covers/${m.id}.png" alt="">`;
+    deskBook.innerHTML = Loader.renderCoverHTML(m);
     titleCartouche.textContent = m.title;
     bookIndex.textContent = `${ROMAN[idx]} / ${ROMAN[manifests.length - 1]}`;
     if (direction === 'left' || direction === 'right') {

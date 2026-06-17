@@ -2,9 +2,39 @@
    Bibliotheca Publica Varona — Library Landing
    ========================================================= */
 
+/* Bundled Canterbury */
 @font-face {
   font-family: 'Canterbury';
   src: url('../assets/fonts/Canterbury.ttf') format('truetype');
+  font-display: swap;
+}
+/* Bundled EB Garamond (locked features) */
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../assets/fonts/eb-garamond/EBGaramond-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../assets/fonts/eb-garamond/EBGaramond-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../assets/fonts/eb-garamond/EBGaramond-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('../assets/fonts/eb-garamond/EBGaramond-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
   font-display: swap;
 }
 
@@ -27,11 +57,18 @@ html, body {
   color: var(--vellum);
   overflow: hidden;
   font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  /* Same u→v lockdown as the reader — see manuscript.css for the full
+     explanation. The page is lang="la" but the font must treat it as ENG
+     so historical Latin substitutions don't swap glyphs. */
+  font-language-override: "ENG";
+  font-variant-historical-forms: none;
+  font-variant-historical-ligatures: no-historical-ligatures;
+  font-variant-ligatures: no-discretionary-ligatures;
+  font-feature-settings: "locl" 0, "hist" 0, "hlig" 0, "dlig" 0, "ss01" 0, "ss02" 0, "ss03" 0, "ss04" 0, "ss05" 0, "ss06" 0, "ss07" 0;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Stage: viewport with the scene letter-boxed inside so the entire library
-   photograph is always visible regardless of viewport aspect. */
+/* Stage: letterboxed scene so the whole library photo always shows */
 .stage {
   position: fixed;
   inset: 0;
@@ -43,7 +80,6 @@ html, body {
 }
 .scene {
   position: relative;
-  /* Smallest of (viewport width) or (height * 16/9). */
   width:  min(100vw, calc(100vh * 16 / 9));
   height: min(100vh, calc(100vw * 9 / 16));
   background-image: url('../assets/library.jpg');
@@ -77,7 +113,6 @@ html, body {
   filter: drop-shadow(0 12px 16px rgba(0,0,0,0.55));
   will-change: transform, opacity;
 }
-
 .desk-book.from-left  { transform: translate(-160%, -50%) perspective(900px) rotateX(48deg); opacity: 0; }
 .desk-book.from-right { transform: translate(60%,   -50%) perspective(900px) rotateX(48deg); opacity: 0; }
 .desk-book.out-left   { transform: translate(-160%, -50%) perspective(900px) rotateX(48deg); opacity: 0; }
@@ -87,26 +122,87 @@ html, body {
   filter: drop-shadow(0 18px 22px rgba(0,0,0,0.55)) drop-shadow(0 0 18px rgba(240,213,122,0.45));
   transform: translate(-50%, -54%) perspective(900px) rotateX(46deg);
 }
-
 .desk-book.opening {
   transform: translate(-50%, -85%) perspective(900px) rotateX(0deg) scale(1.4);
   filter: drop-shadow(0 26px 30px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(240,213,122,0.6));
 }
 
-.desk-book img.cover-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* CSS-rendered leather cover (original design) */
+.cover {
+  position: absolute;
+  inset: 0;
   border-radius: 4px 6px 6px 4px / 4px 6px 6px 4px;
+  overflow: hidden;
   box-shadow:
     inset  0  1px 0 rgba(255,255,255,0.10),
     inset  0 -2px 0 rgba(0,0,0,0.45),
     inset  3px 0 0 rgba(0,0,0,0.20),
     inset -1px 0 0 rgba(255,255,255,0.05),
     0 0 0 1px rgba(0,0,0,0.40);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12% 10%;
   user-select: none;
-  -webkit-user-drag: none;
+}
+.cover[data-leather="oxblood"]      { background: radial-gradient(ellipse at 55% 38%, #7a2e2b 0%, #5a1c1a 45%, #2e0908 100%); }
+.cover[data-leather="dark-green"]   { background: radial-gradient(ellipse at 55% 38%, #2a4a30 0%, #1a3a20 45%, #0c1f12 100%); }
+.cover[data-leather="tan"]          { background: radial-gradient(ellipse at 55% 38%, #9b7a4a 0%, #6f522d 50%, #3e2a13 100%); }
+.cover[data-leather="midnight-blue"]{ background: radial-gradient(ellipse at 55% 38%, #1d3a60 0%, #0f2440 45%, #061528 100%); }
+.cover[data-leather="vellum-cream"] { background: radial-gradient(ellipse at 55% 38%, #efe1bb 0%, #d9c79c 55%, #b89e6b 100%); }
+.cover[data-leather="black"]        { background: radial-gradient(ellipse at 55% 38%, #2a221d 0%, #14100c 50%, #050402 100%); }
+
+.cover[data-leather="vellum-cream"] .cover-title { color: #6a4b15; text-shadow: 0 0 1px #3a2810; }
+
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient( 25deg, rgba(0,0,0,0.05)        0 1px, transparent 1px 4px);
+  mix-blend-mode: overlay;
   pointer-events: none;
+}
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px solid var(--gilt);
+  opacity: 0.55;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.cover-title {
+  font-family: 'Cinzel', 'Cormorant SC', 'Trajan Pro', serif;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gilt);
+  text-shadow:
+    0 0 1px #f7e7a5,
+    0 0 6px rgba(240,213,122,0.30);
+  text-align: center;
+  line-height: 1.15;
+  font-size: clamp(8px, 1.05vw, 14px);
+  z-index: 2;
+}
+.cover-ornament {
+  margin-top: 0.9em;
+  width: 32%;
+  opacity: 0.85;
+  z-index: 2;
+}
+.cover[data-wear="light"] .cover-wear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 28% 12% at 78% 18%, rgba(0,0,0,0.18), transparent 70%),
+    radial-gradient(ellipse 12% 6%  at 22% 82%, rgba(0,0,0,0.10), transparent 70%);
+  mix-blend-mode: multiply;
 }
 
 /* Title cartouche on hover */
@@ -115,7 +211,7 @@ html, body {
   left: 50%;
   top: 62%;
   transform: translate(-50%, 0);
-  font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+  font-family: 'EB Garamond', 'Cormorant Garamond', serif;
   font-style: italic;
   font-weight: 500;
   color: var(--vellum);
@@ -133,7 +229,7 @@ html, body {
   transform: translate(-50%, -6px);
 }
 
-/* Carousel arrows at the bottom of the scene */
+/* Carousel arrows */
 .carousel-nav {
   position: absolute;
   left: 50%;
