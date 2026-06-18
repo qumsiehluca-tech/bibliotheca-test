@@ -229,21 +229,71 @@
           continue;
         }
         measure.removeChild(node);
-        const split = splitParagraphToFit(b, measure, limitY);
-        if (split.fitText) {
-          const head = {
-            type: 'paragraph', text: split.fitText,
-            dropcap: b.dropcap, continuation: b.continuation
-          };
-          const tail = {
-            type: 'paragraph', text: split.restText,
-            dropcap: false, continuation: true
-          };
+
+        // The paragraph overflows the remaining space. Like a real book /
+        // Google Docs, we SPLIT it across the page break so the page fills —
+        // but with widow & orphan control so we never strand a tiny tail:
+        //   • orphan guard: keep >= MIN_LINES lines of the paragraph on the
+        //     current page, else push the whole paragraph to the next page.
+        //   • widow guard: carry >= MIN_LINES lines to the next page, else
+        //     pull a line back so the remainder isn't a lonely sliver.
+        const MIN_LINES = 2;
+
+        // Measure one line's height for this paragraph style.
+        const lineH = measureLineHeight(b, measure);
+        const remainingSpace = limitY - (measure.lastElementChild
+          ? measure.lastElementChild.getBoundingClientRect().bottom
+          : boxR.top);
+        const linesThatFit = Math.floor(remainingSpace / lineH);
+
+        // Total lines in the whole paragraph (measured on an empty page).
+        const totalLines = measureParagraphLines(b, measure, pageBlocks, boxR, limitY);
+
+        // ORPHAN GUARD: not enough room for the first MIN_LINES lines, OR
+        // splitting would leave fewer than MIN_LINES on the next page →
+        // move the whole paragraph to the next page (if this page has content).
+        const wouldLeaveWidow = (totalLines - linesThatFit) < MIN_LINES;
+        if (pageBlocks.length > 0 && (linesThatFit < MIN_LINES || wouldLeaveWidow)) {
+          // But if the paragraph is taller than a whole page, we have to split
+          // it regardless — handle that below by checking fitsAlone.
+          measure.innerHTML = '';
+          const solo = blockToNode(b);
+          measure.appendChild(solo);
+          const soloLines = Math.round(
+            (solo.getBoundingClientRect().bottom - boxR.top) / lineH);
+          const fitsAlone = solo.getBoundingClientRect().bottom <= limitY + 1;
+          measure.innerHTML = '';
+          pageBlocks.forEach(pb => measure.appendChild(blockToNode(pb)));
+          if (fitsAlone || soloLines <= MIN_LINES * 2) {
+            flush();
+            queue.unshift(b);
+            continue;
+          }
+          // else fall through and split (page-tall paragraph)
+        }
+
+        // SPLIT to fill the page, but cap the split so at least MIN_LINES
+        // lines carry over (widow guard).
+        let splitLimit = limitY;
+        if ((totalLines - linesThatFit) < MIN_LINES) {
+          // Pull back enough lines so the next page gets >= MIN_LINES.
+          splitLimit = limitY - (MIN_LINES - (totalLines - linesThatFit)) * lineH;
+        }
+
+        const split = splitParagraphToFit(b, measure, splitLimit);
+        if (split.fitText && split.restText) {
+          const head = { type:'paragraph', text:split.fitText, dropcap:b.dropcap, continuation:b.continuation };
+          const tail = { type:'paragraph', text:split.restText, dropcap:false, continuation:true };
           measure.appendChild(blockToNode(head));
           pageBlocks.push(head);
           flush();
-          if (split.restText) queue.unshift(tail);
+          queue.unshift(tail);
+        } else if (split.fitText && !split.restText) {
+          // Whole thing fit after all.
+          measure.appendChild(blockToNode(b));
+          pageBlocks.push(b);
         } else {
+          // Couldn't fit even MIN_LINES — move whole paragraph to next page.
           if (pageBlocks.length > 0) {
             flush();
             queue.unshift(b);
@@ -259,6 +309,27 @@
     flush();
     document.body.removeChild(measure);
     return pages;
+  }
+
+  // Height of a single line for a paragraph's style.
+  function measureLineHeight(block, measure) {
+    const probe = blockToNode({ type:'paragraph', text:'Mg', dropcap:false, continuation:block.continuation });
+    measure.appendChild(probe);
+    const h = probe.getBoundingClientRect().height;
+    measure.removeChild(probe);
+    return h || 24;
+  }
+
+  // How many lines the full paragraph occupies on an otherwise empty page.
+  function measureParagraphLines(block, measure, pageBlocks, boxR, limitY) {
+    const saved = measure.innerHTML;
+    measure.innerHTML = '';
+    const solo = blockToNode({ type:'paragraph', text:block.text, dropcap:block.dropcap, continuation:block.continuation });
+    measure.appendChild(solo);
+    const h = solo.getBoundingClientRect().height;
+    const lineH = measureLineHeight(block, measure) || 24;
+    measure.innerHTML = saved;
+    return Math.max(1, Math.round(h / lineH));
   }
 
   function splitParagraphToFit(block, measure, limitY) {
@@ -364,65 +435,31 @@
       }
       const combined = prevCopy.concat(endCopy);
 
-      // Re-flow combined across two pages. Aim to fill the FIRST page to the
-      // halfway point of the combined text, splitting a paragraph mid-way if
-      // needed, so both pages are about equally full. Never exceed the hard
-      // page limit on the first page.
+      // Re-flow combined across two pages, keeping every paragraph WHOLE.
+      // We move whole paragraphs onto page 1 until adding the next one would
+      // pass the halfway mark; the rest go to page 2. No mid-sentence breaks.
       const totalHeight = pageContentHeight(combined);
       const target = boxR.top + totalHeight / 2;
 
       const first = [];
       const second = [];
       measure.innerHTML = '';
-      const queue2 = combined.slice();
       let filledFirst = false;
 
-      while (queue2.length > 0) {
-        const b = queue2.shift();
+      for (const b of combined) {
         if (filledFirst) { second.push(b); continue; }
 
         const node = blockToNode(b);
         measure.appendChild(node);
         const bottom = node.getBoundingClientRect().bottom;
 
-        if (bottom <= target || first.length === 0) {
-          // Still under the halfway target (or first block) — keep on page 1,
-          // but make sure we never blow past the hard limit.
-          if (bottom > limitY && first.length > 0) {
-            // Overflowed the physical page — split this paragraph.
-            measure.removeChild(node);
-            if (b.type === 'paragraph') {
-              const split = splitParagraphToFit(b, measure, limitY);
-              if (split.fitText) {
-                first.push({ type:'paragraph', text:split.fitText, dropcap:b.dropcap, continuation:b.continuation });
-                if (split.restText)
-                  second.push({ type:'paragraph', text:split.restText, dropcap:false, continuation:true });
-              } else {
-                second.push(b);
-              }
-            } else {
-              second.push(b);
-            }
-            filledFirst = true;
-          } else {
-            first.push(b);
-          }
+        // Keep the first block regardless; otherwise stop adding to page 1
+        // once we'd cross the halfway target or the hard page limit.
+        if (first.length === 0 || (bottom <= target && bottom <= limitY)) {
+          first.push(b);
         } else {
-          // Crossed the halfway target — split the paragraph here so page 1
-          // ends near the midpoint instead of dumping the whole block over.
           measure.removeChild(node);
-          if (b.type === 'paragraph') {
-            const split = splitParagraphToFit(b, measure, target);
-            if (split.fitText) {
-              first.push({ type:'paragraph', text:split.fitText, dropcap:b.dropcap, continuation:b.continuation });
-              if (split.restText)
-                second.push({ type:'paragraph', text:split.restText, dropcap:false, continuation:true });
-            } else {
-              second.push(b);
-            }
-          } else {
-            second.push(b);
-          }
+          second.push(b);
           filledFirst = true;
         }
       }
@@ -445,7 +482,11 @@
     }
     document.body.removeChild(measure);
   }
-  rebalanceSectionEnds();
+  // With page-filling paragraph splitting + widow/orphan control, pages no
+  // longer end with orphan lines, so the section-end rebalance is no longer
+  // needed (and would only re-introduce uneven splits). Left defined but
+  // intentionally not called.
+  // rebalanceSectionEnds();
 
   // ---- Spread list ---------------------------------------------------
   function buildSpreads() {
@@ -515,10 +556,11 @@
   }
 
   // ---- Spread balance ------------------------------------------------
-  // Pagination + the section-end rebalance already make every page full
-  // with perfectly uniform paragraph spacing (Google-Docs-like). We do NOT
-  // stretch gaps between paragraphs — that always looks broken. This just
-  // clears any stale inline margins from a previous render.
+  // Paragraphs now split across page breaks (with widow/orphan control), so
+  // every running page fills to the bottom on its own — exactly like Google
+  // Docs and a real book. Paragraph spacing stays perfectly uniform; we do
+  // NOT stretch gaps. This just clears any stale inline margins from a prior
+  // render so spacing is always consistent.
   function balanceSpread(spreadEl) {
     spreadEl.querySelectorAll('p, .verse, .chapter-block').forEach(el => {
       el.style.marginBottom = '';
@@ -778,7 +820,6 @@
     resizeTimer = setTimeout(() => {
       const previousChapterIdx = findChapterIdxBySpread(currentSpread);
       contentPages = paginate();
-      rebalanceSectionEnds();
       spreads = buildSpreads();
       if (previousChapterIdx >= 0) {
         for (let p = 0; p < contentPages.length; p++) {
