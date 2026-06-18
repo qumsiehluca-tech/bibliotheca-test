@@ -48,7 +48,7 @@
   --para-indent:         1.4em;
   --para-spacing:        0.6em;
   --chapter-title-size:  2.6em;
-  --dropcap-size:        4.2em;
+  --dropcap-size:        3.6em;
   --dropcap-color:       var(--rubric);
 }
 
@@ -297,18 +297,19 @@ body.doc-mode { overflow: hidden; }
 .greek  { font-family: inherit; font-style: inherit; }
 .arabic { font-family: 'Amiri', serif; font-size: 1.12em; }
 
-/* Drop cap — Canterbury, tight to next letter */
+/* Drop cap — Canterbury initial. Sized so exactly the first ~3 lines sit
+   beside it, with right-hand breathing room so wrapped lines never collide
+   with the ornate blackletter glyph. */
 .page p.chapter-opener { text-indent: 0; }
 .page p.chapter-opener::first-letter {
   font-family: 'Canterbury', serif;
   float: left;
   font-size: var(--dropcap-size);
-  line-height: 0.78;
-  margin: 0.04em 0 -0.06em 0;
+  line-height: 0.68;
+  margin: 0.06em 0.12em -0.04em 0;   /* right margin keeps text clear */
   padding: 0;
   color: var(--dropcap-color);
   font-weight: 400;
-  letter-spacing: -0.04em;
 }
 .page .chapter-block { margin-top: 0.3em; }
 
