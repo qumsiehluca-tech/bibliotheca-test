@@ -147,7 +147,7 @@
     const pages = [];
     let pageBlocks = [];
 
-    const SAFETY = 18;
+    const SAFETY = 22;
     const padBot = parseFloat(getComputedStyle(measure).paddingBottom) || 0;
     const boxR   = measure.getBoundingClientRect();
     const limitY = boxR.bottom - padBot - SAFETY;
@@ -232,51 +232,44 @@
 
         // The paragraph overflows the remaining space. Like a real book /
         // Google Docs, we SPLIT it across the page break so the page fills —
-        // but with widow & orphan control so we never strand a tiny tail:
-        //   • orphan guard: keep >= MIN_LINES lines of the paragraph on the
-        //     current page, else push the whole paragraph to the next page.
-        //   • widow guard: carry >= MIN_LINES lines to the next page, else
-        //     pull a line back so the remainder isn't a lonely sliver.
+        // with widow & orphan control to avoid stranding tiny slivers, but
+        // never at the cost of leaving a big empty gap.
+        //
+        //   • If only a tiny amount of the page is left (so we'd strand <2
+        //     lines here) AND moving the whole paragraph down leaves only a
+        //     small gap, move it down (clean break, page still looks full).
+        //   • Otherwise SPLIT to fill the page, keeping >=2 lines on the next
+        //     page (pull back a line if needed).
         const MIN_LINES = 2;
 
-        // Measure one line's height for this paragraph style.
         const lineH = measureLineHeight(b, measure);
         const remainingSpace = limitY - (measure.lastElementChild
           ? measure.lastElementChild.getBoundingClientRect().bottom
           : boxR.top);
         const linesThatFit = Math.floor(remainingSpace / lineH);
-
-        // Total lines in the whole paragraph (measured on an empty page).
         const totalLines = measureParagraphLines(b, measure, pageBlocks, boxR, limitY);
 
-        // ORPHAN GUARD: not enough room for the first MIN_LINES lines, OR
-        // splitting would leave fewer than MIN_LINES on the next page →
-        // move the whole paragraph to the next page (if this page has content).
-        const wouldLeaveWidow = (totalLines - linesThatFit) < MIN_LINES;
-        if (pageBlocks.length > 0 && (linesThatFit < MIN_LINES || wouldLeaveWidow)) {
-          // But if the paragraph is taller than a whole page, we have to split
-          // it regardless — handle that below by checking fitsAlone.
-          measure.innerHTML = '';
-          const solo = blockToNode(b);
-          measure.appendChild(solo);
-          const soloLines = Math.round(
-            (solo.getBoundingClientRect().bottom - boxR.top) / lineH);
-          const fitsAlone = solo.getBoundingClientRect().bottom <= limitY + 1;
-          measure.innerHTML = '';
-          pageBlocks.forEach(pb => measure.appendChild(blockToNode(pb)));
-          if (fitsAlone || soloLines <= MIN_LINES * 2) {
-            flush();
-            queue.unshift(b);
-            continue;
-          }
-          // else fall through and split (page-tall paragraph)
+        // Gap (in lines) we'd create on THIS page if we moved the whole
+        // paragraph to the next page.
+        const gapIfMoved = Math.floor(remainingSpace / lineH);
+
+        // Only move the whole paragraph down when the orphan guard requires it
+        // (too little room to keep >=MIN_LINES here, or splitting would leave
+        // <MIN_LINES on the next page) AND doing so won't open a big gap
+        // (<= 3 lines of empty space). Otherwise we split.
+        const tooFewHere   = linesThatFit < MIN_LINES;
+        const tooFewThere  = (totalLines - linesThatFit) < MIN_LINES;
+        const smallGap     = gapIfMoved <= 3;
+        if (pageBlocks.length > 0 && (tooFewHere || tooFewThere) && smallGap) {
+          flush();
+          queue.unshift(b);
+          continue;
         }
 
-        // SPLIT to fill the page, but cap the split so at least MIN_LINES
-        // lines carry over (widow guard).
+        // SPLIT to fill the page. Keep >=MIN_LINES carrying over (widow guard)
+        // and >=MIN_LINES staying here (orphan guard) where possible.
         let splitLimit = limitY;
-        if ((totalLines - linesThatFit) < MIN_LINES) {
-          // Pull back enough lines so the next page gets >= MIN_LINES.
+        if (tooFewThere) {
           splitLimit = limitY - (MIN_LINES - (totalLines - linesThatFit)) * lineH;
         }
 
