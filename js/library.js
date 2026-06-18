@@ -92,4 +92,42 @@
 
   renderCurrent(null);
 
+  // ---- Drifting dust motes in the light ------------------------------
+  // Lightweight: a handful of motes that slowly rise/drift and fade,
+  // concentrated toward the light shaft on the right side of the scene.
+  (function spawnDust() {
+    const dust = document.getElementById('atmosDust');
+    if (!dust) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const COUNT = 26;
+    for (let i = 0; i < COUNT; i++) {
+      const mote = document.createElement('span');
+      mote.className = 'mote';
+      dust.appendChild(mote);
+      animateMote(mote, true);
+    }
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function animateMote(mote, initial) {
+      // Bias horizontal position toward the lit right-of-centre area.
+      const startX = rand(38, 92);
+      const startY = rand(40, 95);
+      const driftX = rand(-6, 4);
+      const driftY = rand(-14, -5);     // generally rising
+      const dur = rand(7000, 16000);
+      const maxOpacity = rand(0.18, 0.55);
+      const size = rand(2, 4.5);
+      mote.style.width = mote.style.height = size.toFixed(1) + 'px';
+      mote.style.left = startX + '%';
+      mote.style.top = startY + '%';
+      const delay = initial ? rand(0, 8000) : 0;
+      mote.animate([
+        { transform: 'translate(0,0)', opacity: 0 },
+        { opacity: maxOpacity, offset: 0.2 },
+        { opacity: maxOpacity, offset: 0.75 },
+        { transform: `translate(${driftX}vw, ${driftY}vh)`, opacity: 0 }
+      ], { duration: dur, delay, easing: 'ease-in-out' })
+        .addEventListener('finish', () => animateMote(mote, false));
+    }
+  })();
+
 })();

@@ -126,18 +126,21 @@
   let pagedPages = [];        // [{ html, isPrelude, chapterAnchor }]
   let chapterPageIndex = {};  // anchor -> content-page index
 
-  async function runPagedEngine() {
+  // Run paged.js once for a given mode. `cssHref` is the stylesheet whose
+  // @page geometry drives fragmentation, so codex and scriptum each get a
+  // page shape tuned for how they're read. Returns { pages, chapterIndex }.
+  async function runPagedFor(cssHref) {
     const host = document.createElement('div');
-    host.id = 'paged-host';
+    host.className = 'paged-host';
     host.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;';
     document.body.appendChild(host);
 
     const flowHTML = buildFlowHTML();
     const previewer = new Paged.Previewer();
-    await previewer.preview(flowHTML, ['css/paged-rules.css'], host);
+    await previewer.preview(flowHTML, [cssHref], host);
 
     const pageEls = Array.from(host.querySelectorAll('.pagedjs_page'));
-    pagedPages = pageEls.map((pg) => {
+    const pages = pageEls.map((pg) => {
       const inner = pg.querySelector('.pagedjs_page_content');
       let html = '';
       if (inner) {
@@ -150,12 +153,20 @@
       return { html, isPrelude, chapterAnchor };
     });
 
-    chapterPageIndex = {};
-    pagedPages.forEach((p, i) => {
-      if (p.chapterAnchor && !(p.chapterAnchor in chapterPageIndex)) chapterPageIndex[p.chapterAnchor] = i;
+    const chapterIndex = {};
+    pages.forEach((p, i) => {
+      if (p.chapterAnchor && !(p.chapterAnchor in chapterIndex)) chapterIndex[p.chapterAnchor] = i;
     });
 
     host.remove();
+    return { pages, chapterIndex };
+  }
+
+  // Codex pages (eager — this is the default view).
+  async function runPagedEngine() {
+    const r = await runPagedFor('css/paged-rules.css');
+    pagedPages = r.pages;
+    chapterPageIndex = r.chapterIndex;
   }
 
   // ---- Leaves --------------------------------------------------------
@@ -236,18 +247,53 @@
   }
 
   // =========================================================
-  // SCRIPTUM MODE
+  // SCRIPTUM MODE — its own paged.js pass with a taller, wider page tuned
+  // for vertical reading, plus its own leaves.
   // =========================================================
+  let pagedPagesDoc = [];
+  let docLeaves = [];
+  let docPaginated = false;
+
+  function buildDocLeaves() {
+    docLeaves = [];
+    docLeaves.push({ type: 'frontispiece' });
+    if (isPlaceholder) { docLeaves.push({ type: 'placeholder' }); return; }
+    pagedPagesDoc.forEach((p, i) => {
+      docLeaves.push({ type: p.isPrelude ? 'prelude' : 'content', idx: i });
+    });
+  }
+  function docFolioForLeaf(leafIdx) {
+    let n = 0;
+    for (let i = 0; i <= leafIdx && i < docLeaves.length; i++) {
+      const lf = docLeaves[i];
+      if (lf.type === 'content' || lf.type === 'prelude') n++;
+    }
+    return toRoman(n);
+  }
+  function docLeafInnerHTML(leaf) {
+    if (leaf.type === 'frontispiece') return renderFrontispiece();
+    if (leaf.type === 'placeholder')  return `<div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>`;
+    return pagedPagesDoc[leaf.idx].html;
+  }
+
+  async function ensureDocPaginated() {
+    if (docPaginated || isPlaceholder) { docPaginated = true; return; }
+    const r = await runPagedFor('css/paged-rules-scriptum.css');
+    pagedPagesDoc = r.pages;
+    docPaginated = true;
+  }
+
   function renderDocMode() {
     if (docColumn.children.length > 0) return;
-    leaves.forEach((leaf, i) => {
+    buildDocLeaves();
+    docLeaves.forEach((leaf, i) => {
       const div = document.createElement('div');
       div.className = `page recto doc-folio ${leafClasses(leaf)}`.trim();
-      div.innerHTML = leafInnerHTML(leaf);
+      div.innerHTML = docLeafInnerHTML(leaf);
       if (leaf.type === 'content' || leaf.type === 'prelude') {
         const folio = document.createElement('div');
         folio.className = 'folio';
-        folio.textContent = `fol. ${folioForLeaf(i)}`;
+        folio.textContent = `fol. ${docFolioForLeaf(i)}`;
         div.appendChild(folio);
       }
       docColumn.appendChild(div);
@@ -352,13 +398,20 @@
   });
 
   // ---- Mode toggle ---------------------------------------------------
-  function setMode(mode) {
+  async function setMode(mode) {
     if (mode === 'doc') {
       document.body.classList.remove('codex-mode');
       document.body.classList.add('doc-mode');
       modeToggle.textContent = 'scriptum';
       modeToggle.classList.add('active');
+      if (!docPaginated) {
+        loading.classList.remove('gone');
+        loading.textContent = 'conlegendo \u2026';
+        try { await ensureDocPaginated(); } catch (e) { console.error(e); }
+        loading.classList.add('gone');
+      }
       renderDocMode();
+      fitDocScale();
     } else {
       document.body.classList.remove('doc-mode');
       document.body.classList.add('codex-mode');
@@ -380,11 +433,19 @@
     const scale = Math.min(availW / 1200, availH / 900, 1.15);
     document.documentElement.style.setProperty('--spread-scale', scale.toFixed(4));
   }
+  function fitDocScale() {
+    if (!docFrame) return;
+    const availW = docFrame.clientWidth;
+    // 720px folio + a little side breathing room; never upscale past 1.
+    const scale = Math.min((availW - 32) / 720, 1);
+    document.documentElement.style.setProperty('--doc-scale', Math.max(0.4, scale).toFixed(4));
+  }
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       fitSpreadScale();
+      fitDocScale();
       if (!document.body.classList.contains('doc-mode')) renderSpread(null);
     }, 150);
   });
