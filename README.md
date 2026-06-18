@@ -115,38 +115,53 @@ To add a brand-new book: make a folder under `books/`, write a
 
 ## Manually tuning the look
 
-The most useful knobs are at the top of `css/manuscript.css`:
+The reader paginates with **paged.js** (a W3C Paged Media engine, vendored
+locally at `assets/vendor/pagedjs.js` — no internet needed). The whole book
+is rendered as one continuous flow and paged.js fragments it into book pages
+with proper fill / widow / orphan control. Both the codex (two-page spread)
+and scriptum (vertical scroll) modes render from that same set of pages, so
+they fall identically.
+
+Because pagination is done at a FIXED page size, two stylesheets matter:
+
+- `css/paged-rules.css` — handed directly to paged.js. It sets the `@page`
+  size (`600px 900px`), the margins, and the typography paged.js measures
+  with. **If you change the page size or text styling, change it here.**
+- `css/manuscript.css` — the on-screen look (leather, parchment, spine,
+  ornaments) and the `.page` shells that display the fragmented content.
+  The `.page` size and padding here MUST match the `@page` size and margins
+  in `paged-rules.css`, or text won't line up with the page edges.
+
+The most useful knobs in `css/manuscript.css :root`:
 
 ```css
 :root {
-  --page-padding:        52px;
-  --page-padding-gutter: 60px;
-  --body-font-size:      clamp(13px, 0.95vw, 16px);
+  --body-font-size-fixed: 15px;   /* must match paged-rules.css body size */
   --body-line-height:    1.62;
   --para-indent:         1.4em;
   --para-spacing:        0.6em;
   --chapter-title-size:  2.6em;
-  --dropcap-size:        4.2em;
+  --dropcap-size:        3.6em;
   --dropcap-color:       var(--rubric);
 }
 ```
 
-Change any value, save, refresh — the reader re-paginates automatically
-on every viewport resize.
+To change how much text fits per page, edit the `@page { size: ... }` and
+`margin` in `paged-rules.css`, then set the matching `.page { width/height/
+padding }` in `manuscript.css`. A bigger page or smaller font = fewer pages.
 
-For broader look-and-feel changes: the body font is set in
-`html, body { font-family: ... }`; the rubric red is `--rubric`; the
-paper colour is `--paper`. All in `css/manuscript.css`.
+For broader look-and-feel: the rubric red is `--rubric`; the paper colour is
+`--paper`. All in `css/manuscript.css`.
 
 ## The u→v gotcha (fixed)
 
 EB Garamond ships with an OpenType `locl` (localized forms) rule that
 substitutes `u → u.LAT` (a historical V-shape) when the page language is
 Latin. Because the HTML declares `lang="la"`, the browser would render
-"ubi uxor" as "vbi vxor". The CSS now sets `font-language-override: "ENG"`
-and disables `locl`, `hist`, `hlig`, `dlig`, and `ss01`–`ss07` on the
-body, so the body text reads with normal `u` shapes while the page stays
-correctly tagged as Latin for screen readers and search engines.
+"ubi uxor" as "vbi vxor". The CSS sets `font-language-override: "ENG"`
+and disables `locl`, `hist`, `hlig`, `dlig`, and `ss01`–`ss07`, so the body
+text reads with normal `u` shapes while the page stays correctly tagged as
+Latin. This is set in both `manuscript.css` and `paged-rules.css`.
 
 ## Deployment
 

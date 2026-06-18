@@ -44,6 +44,7 @@
   --page-padding:        52px;
   --page-padding-gutter: 60px;
   --body-font-size:      clamp(13px, 0.95vw, 16px);
+  --body-font-size-fixed: 15px;
   --body-line-height:    1.62;
   --para-indent:         1.4em;
   --para-spacing:        0.6em;
@@ -168,12 +169,20 @@ body.doc-mode { overflow: hidden; }
   overflow: hidden;
 }
 
+/* The spread is a FIXED 1200×900 (two 600×900 pages) so the on-screen page
+   geometry exactly matches the box paged.js fragmented into. It is then
+   scaled down with a transform to fit whatever viewport we're in, so the
+   text falls identically regardless of screen size. The scale factor is set
+   in JS via --spread-scale, with a CSS fallback. */
 .spread {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: min(1200px, 96vw, calc((100vh - 84px) * 1.5));
-  height: min(900px, calc(100vh - 84px));
+  grid-template-columns: 600px 600px;
+  width: 1200px;
+  height: 900px;
+  flex: none;
+  transform: scale(var(--spread-scale, 1));
+  transform-origin: center center;
   filter:
     drop-shadow(0 24px 32px rgba(0,0,0,0.55))
     drop-shadow(0 6px 10px rgba(0,0,0,0.4));
@@ -181,22 +190,24 @@ body.doc-mode { overflow: hidden; }
 
 .page {
   position: relative;
+  width: 600px;
+  height: 900px;
   background-color: var(--paper);
   background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>"),
     radial-gradient(ellipse at 30% 20%, var(--paper) 0%, var(--paper-deep) 100%);
   background-blend-mode: multiply, normal;
-  padding: var(--page-padding);
-  display: flex;
-  flex-direction: column;
+  padding: 52px 60px 64px 60px;
   overflow: hidden;
-  font-size: var(--body-font-size);
+  font-size: var(--body-font-size-fixed);
   line-height: var(--body-line-height);
   color: var(--ink);
-  hyphens: auto;
 }
-.page.verso { padding-right: var(--page-padding-gutter); border-right: 1px solid rgba(60,40,20,0.10); }
-.page.recto { padding-left:  var(--page-padding-gutter); }
+/* Verso/recto keep symmetric padding so the text area equals the paged.js
+   content box exactly (asymmetric gutters would shift the fill). The gutter
+   look is provided by the spine shadow instead. */
+.page.verso { border-right: 1px solid rgba(60,40,20,0.10); }
+.page.recto { }
 
 .page.verso::before,
 .page.recto::after {
@@ -315,6 +326,8 @@ body.doc-mode { overflow: hidden; }
 
 /* Frontispiece */
 .page.frontispiece {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -377,6 +390,8 @@ body.doc-mode { overflow: hidden; }
 .page.blank-verso { background-color: var(--paper); }
 
 .page.placeholder-page {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -392,6 +407,8 @@ body.doc-mode { overflow: hidden; }
 
 /* Epilogue prelude page */
 .page.epilogue-prelude {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -622,3 +639,82 @@ body.doc-mode   .spread-frame { display: none; }
   .spread::before { display: none; }
   .doc-frame .doc-page { padding: 48px 36px; }
 }
+
+/* =========================================================
+   paged.js integration
+   The whole book is fragmented by paged.js at a FIXED page box
+   (so pagination is deterministic). The visible .page shells then
+   display that pre-fragmented content. The @page size below MUST
+   match the .page text-area geometry used on screen.
+   ========================================================= */
+
+@page {
+  size: 600px 900px;
+  margin: 52px 60px 64px 60px;
+}
+
+/* The offscreen host where paged.js renders — keep it laid out at the
+   reference size so fragmentation matches the on-screen page boxes. */
+#paged-host {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: var(--body-font-size-fixed);
+  line-height: var(--body-line-height);
+}
+
+/* Content styling INSIDE the paged flow (and re-used inside .page shells,
+   since the harvested HTML keeps these classes). */
+#paged-host .pagedjs_page_content,
+.page {
+  font-size: var(--body-font-size-fixed);
+}
+
+/* Forced page break before each chapter (paged.js honours break-before). */
+#paged-host .chapter-flow { break-before: page; }
+#paged-host .flow-prelude { break-before: page; break-after: page; }
+
+/* Chapter block, verse, dropcap, rule — styled identically in the flow so
+   paged.js measures them exactly as they will display. These mirror the
+   .page rules already defined above. */
+#paged-host .chapter-block { text-align: center; margin: 0; break-after: avoid; }
+#paged-host .chapter-title {
+  font-family: 'Canterbury', 'Cormorant Unicase', serif;
+  color: var(--rubric); text-align: center;
+  font-size: var(--chapter-title-size); font-weight: 400;
+  letter-spacing: 0.04em; margin: 0.4em 0 0.2em; line-height: 1.1;
+}
+#paged-host .chapter-divider {
+  display:block; margin:0.3em auto 1em; width:60%; max-width:320px;
+  height:auto; aspect-ratio:8/1; opacity:0.85;
+}
+#paged-host p {
+  text-align: justify; text-indent: var(--para-indent);
+  margin: 0 0 var(--para-spacing) 0; word-spacing: 0.02em;
+  orphans: 2; widows: 2;
+}
+#paged-host .chapter-block + p,
+#paged-host hr + p,
+#paged-host .verse + p,
+#paged-host p.chapter-opener { text-indent: 0; }
+#paged-host p.chapter-opener::first-letter {
+  font-family: 'Canterbury', serif; float: left;
+  font-size: var(--dropcap-size); line-height: 0.68;
+  margin: 0.06em 0.12em -0.04em 0; color: var(--dropcap-color); font-weight: 400;
+}
+#paged-host .verse {
+  text-align:center; font-style:italic; margin:0.9em 0;
+  color:var(--ink-soft); font-size:1.02em; line-height:1.7; break-inside: avoid;
+}
+#paged-host .verse .verse-line { display:block; text-indent:0; padding:0 2em; }
+#paged-host hr {
+  border:none; height:24px; margin:1.2em auto; width:40%;
+  background:center/contain no-repeat url('../assets/ornaments/divider.svg'); opacity:0.7;
+}
+#paged-host .greek { font-family: inherit; font-style: inherit; }
+#paged-host .prelude-rubric {
+  font-family:'Canterbury',serif; color:var(--rubric); font-size:2.2em;
+  text-align:center; margin:0 0 0.5em; line-height:1.1; font-weight:400;
+}
+#paged-host .prelude-divider { display:block; margin:0.4em auto 1.4em; width:50%; max-width:260px; height:auto; aspect-ratio:8/1; opacity:0.85; }
+#paged-host .prelude-body { font-family:'EB Garamond',serif; font-style:italic; color:var(--ink-soft); font-size:1.18em; line-height:1.75; text-align:center; max-width:32em; margin:0 auto; }
+#paged-host .prelude-fleuron { display:block; margin:1.6em auto 0; width:40px; height:40px; opacity:0.6; }
+#paged-host .flow-prelude { text-align:center; }
