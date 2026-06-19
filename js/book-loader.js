@@ -165,7 +165,9 @@
           <div class="book-back"></div>
           <div class="book-pages"></div>
         </div>
+        <div class="book-spine" aria-hidden="true"></div>
         <div class="cover" data-leather="${leather}" data-wear="${wear}">
+          <div class="cover-sheen" aria-hidden="true"></div>
           <div class="cover-title">${titleHTML}</div>
           ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
           <div class="cover-wear"></div>
