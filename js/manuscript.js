@@ -126,9 +126,10 @@
   let pagedPages = [];        // [{ html, isPrelude, chapterAnchor }]
   let chapterPageIndex = {};  // anchor -> content-page index
 
-  // Run paged.js once for a given mode. `cssHref` is the stylesheet whose
-  // @page geometry drives fragmentation, so codex and scriptum each get a
-  // page shape tuned for how they're read. Returns { pages, chapterIndex }.
+  // Run paged.js once. `cssHref` is the stylesheet whose @page geometry and
+  // content styling drive fragmentation. There is only ONE caller, passing the
+  // scriptum rules, so the whole book is fragmented a single time into one set
+  // of folios that BOTH modes display. Returns { pages, chapterIndex }.
   async function runPagedFor(cssHref) {
     const host = document.createElement('div');
     host.className = 'paged-host';
