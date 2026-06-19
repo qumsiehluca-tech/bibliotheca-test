@@ -247,6 +247,7 @@
     }
     prevBtn.disabled = currentSpread <= 0;
     nextBtn.disabled = currentSpread >= spreads.length - 1;
+    saveLast();
   }
 
   // =========================================================
@@ -380,6 +381,7 @@
       modeToggle.textContent = 'codex';
       modeToggle.classList.remove('active');
     }
+    saveLast();
   }
   modeToggle.addEventListener('click', () => {
     setMode(document.body.classList.contains('doc-mode') ? 'codex' : 'doc');
@@ -413,7 +415,104 @@
     }, 150);
   });
 
-  // ---- Boot ----------------------------------------------------------
+  // =========================================================
+  // Signaculum — position memory + a silk bookmark ribbon.
+  //
+  // Two complementary things, both per-book, both in localStorage (NOT
+  // cookies: cookies ride along on every network request and expire; for a
+  // static site, localStorage is simpler, larger, and persists indefinitely):
+  //   • last position  — auto-saved as you read; restored silently on reopen,
+  //                       so the book falls open where you left it.
+  //   • the ribbon mark — an explicit bookmark you place by clicking the
+  //                       ribbon; click again to return to it; × to remove.
+  //
+  // Pagination here is viewport-independent (fixed 720×1040 page box), so a
+  // saved spread index is stable across sessions and screen sizes. Scriptum
+  // saves a scroll FRACTION so it survives the doc-scale changing.
+  // =========================================================
+  const STORE = 'bibliotheca:';
+  const POS_KEY  = STORE + 'pos:'  + bookId;
+  const MARK_KEY = STORE + 'mark:' + bookId;
+
+  function safeGet(k) {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }
+    catch (_) { return null; }
+  }
+  function safeSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+  function safeDel(k)    { try { localStorage.removeItem(k); } catch (_) {} }
+
+  function currentPosition() {
+    const docMode = document.body.classList.contains('doc-mode');
+    let frac = 0;
+    if (docMode && docFrame.scrollHeight > docFrame.clientHeight) {
+      frac = docFrame.scrollTop / (docFrame.scrollHeight - docFrame.clientHeight);
+    }
+    return { mode: docMode ? 'doc' : 'codex', spread: currentSpread, frac: +frac.toFixed(4) };
+  }
+
+  // Apply a saved position. `smooth` only affects scriptum scrolling.
+  function applyPosition(pos, smooth) {
+    if (!pos) return;
+    if (pos.mode === 'doc') {
+      if (!document.body.classList.contains('doc-mode')) setMode('doc');
+      // Wait for the column to lay out, then scroll to the saved fraction.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const max = docFrame.scrollHeight - docFrame.clientHeight;
+        docFrame.scrollTo({ top: (pos.frac || 0) * max, behavior: smooth ? 'smooth' : 'auto' });
+      }));
+    } else {
+      if (document.body.classList.contains('doc-mode')) setMode('codex');
+      const s = Math.max(0, Math.min(spreads.length - 1, pos.spread | 0));
+      currentSpread = s;
+      renderSpread(smooth ? 'next' : null);
+    }
+  }
+
+  // Debounced auto-save of the last position. `resuming` suppresses saves while
+  // we programmatically restore, so a resume never clobbers the mark logic.
+  let saveTimer = null, resuming = false;
+  function saveLast() {
+    if (resuming || typeof bookId !== 'string') return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => safeSet(POS_KEY, currentPosition()), 200);
+  }
+  docFrame.addEventListener('scroll', saveLast, { passive: true });
+
+  // ---- The ribbon -------------------------------------------------------
+  function initSignaculum() {
+    const ribbon = document.getElementById('signaculum');
+    const clear  = document.getElementById('signaculumClear');
+    if (!ribbon) return;
+
+    function refresh() {
+      const has = !!safeGet(MARK_KEY);
+      ribbon.classList.toggle('has-mark', has);
+      ribbon.setAttribute('aria-label', has ? 'Redi ad signaculum' : 'Pone signaculum');
+      ribbon.title = has ? 'Redi ad signaculum' : 'Pone signaculum hic';
+    }
+
+    ribbon.addEventListener('click', () => {
+      const mark = safeGet(MARK_KEY);
+      if (mark) {
+        applyPosition(mark, true);            // return to the bookmark
+      } else {
+        safeSet(MARK_KEY, currentPosition()); // place a bookmark here
+        ribbon.classList.add('dropping');
+        setTimeout(() => ribbon.classList.remove('dropping'), 480);
+      }
+      refresh();
+    });
+
+    clear.addEventListener('click', (e) => {
+      e.stopPropagation();                    // don't trigger "go to mark"
+      safeDel(MARK_KEY);
+      refresh();
+    });
+
+    refresh();
+  }
+
+
   try {
     if (!isPlaceholder) await runPagedEngine();
   } catch (err) {
@@ -427,5 +526,16 @@
   fitSpreadScale();
   renderSpread(null);
   loading.classList.add('gone');
+
+  // Restore where the reader left off (silently), then arm the ribbon.
+  if (!isPlaceholder) {
+    const last = safeGet(POS_KEY);
+    if (last && (last.mode === 'doc' || (last.spread | 0) > 0)) {
+      resuming = true;
+      applyPosition(last, false);
+      requestAnimationFrame(() => requestAnimationFrame(() => { resuming = false; }));
+    }
+  }
+  initSignaculum();
 
 })();
