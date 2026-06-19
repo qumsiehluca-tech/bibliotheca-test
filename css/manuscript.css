@@ -48,8 +48,8 @@
   --body-line-height:    1.62;
   --para-indent:         1.4em;
   --para-spacing:        0.6em;
-  --chapter-title-size:  2.6em;
-  --dropcap-size:        3.6em;
+  --chapter-title-size:  2.8em;
+  --dropcap-size:        3.7em;
   --dropcap-color:       var(--rubric);
 }
 
@@ -81,6 +81,7 @@ body.doc-mode { overflow: hidden; }
   position: fixed;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
   background-image: url('../assets/library.jpg');
   background-size: cover;
   background-position: center;
@@ -169,17 +170,16 @@ body.doc-mode { overflow: hidden; }
   overflow: hidden;
 }
 
-/* The spread is a FIXED 1200×900 (two 600×900 pages) so the on-screen page
-   geometry exactly matches the box paged.js fragmented into. It is then
-   scaled down with a transform to fit whatever viewport we're in, so the
-   text falls identically regardless of screen size. The scale factor is set
-   in JS via --spread-scale, with a CSS fallback. */
+/* The spread is two 720×1040 folios side by side (= 1440×1040) — the SAME
+   page geometry as scriptum, so a page looks identical in both views. It is
+   scaled with a transform to fit the viewport. Scale set in JS via
+   --spread-scale. */
 .spread {
   position: relative;
   display: grid;
-  grid-template-columns: 600px 600px;
-  width: 1200px;
-  height: 900px;
+  grid-template-columns: 720px 720px;
+  width: 1440px;
+  height: 1040px;
   flex: none;
   transform: scale(var(--spread-scale, 1));
   transform-origin: center center;
@@ -190,22 +190,19 @@ body.doc-mode { overflow: hidden; }
 
 .page {
   position: relative;
-  width: 600px;
-  height: 900px;
+  width: 720px;
+  height: 1040px;
   background-color: var(--paper);
   background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>"),
     radial-gradient(ellipse at 30% 20%, var(--paper) 0%, var(--paper-deep) 100%);
   background-blend-mode: multiply, normal;
-  padding: 52px 60px 64px 60px;
+  padding: 64px 78px 76px 78px;
   overflow: hidden;
-  font-size: var(--body-font-size-fixed);
+  font-size: 17.5px;
   line-height: var(--body-line-height);
   color: var(--ink);
 }
-/* Verso/recto keep symmetric padding so the text area equals the paged.js
-   content box exactly (asymmetric gutters would shift the fill). The gutter
-   look is provided by the spine shadow instead. */
 .page.verso { border-right: 1px solid rgba(60,40,20,0.10); }
 .page.recto { }
 

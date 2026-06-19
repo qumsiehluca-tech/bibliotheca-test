@@ -309,39 +309,16 @@ html, body {
   50%      { opacity: 0.85; transform: translateX(-10px) translateY(6px); }
 }
 
-/* --- Candle glow on the desk (left side). Warm radial that flickers. --- */
+/* --- Candle glow on the desk: a soft, STEADY warm pool (no flicker). --- */
 .atmos-candle {
   background: radial-gradient(
     circle at 22% 63%,
-    rgba(255, 184, 92, 0.30) 0%,
-    rgba(255, 160, 70, 0.14) 5%,
-    rgba(255, 150, 60, 0.05) 9%,
+    rgba(255, 184, 92, 0.18) 0%,
+    rgba(255, 160, 70, 0.08) 5%,
+    rgba(255, 150, 60, 0.03) 9%,
     transparent 14%);
   mix-blend-mode: screen;
-  animation: candleFlicker 220ms steps(2, end) infinite;
-  will-change: opacity, transform;
-}
-@keyframes candleFlicker {
-  0%   { opacity: 0.92; transform: scale(1.00) translateY(0); }
-  25%  { opacity: 1.00; transform: scale(1.02) translateY(-0.4px); }
-  50%  { opacity: 0.86; transform: scale(0.99) translateY(0.3px); }
-  75%  { opacity: 0.98; transform: scale(1.015) translateY(-0.2px); }
-  100% { opacity: 0.90; transform: scale(1.00) translateY(0); }
-}
-
-/* A slower swell layered under the fast flicker for organic candlelight. */
-.atmos-flicker {
-  background: radial-gradient(
-    circle at 22% 63%,
-    rgba(255, 170, 80, 0.12) 0%,
-    transparent 18%);
-  mix-blend-mode: screen;
-  animation: candleSwell 3.7s ease-in-out infinite;
-}
-@keyframes candleSwell {
-  0%, 100% { opacity: 0.5; }
-  40%      { opacity: 0.95; }
-  60%      { opacity: 0.7; }
+  opacity: 0.85;
 }
 
 /* --- Dust motes drifting in the light. JS fills this with .mote spans. --- */
@@ -357,7 +334,7 @@ html, body {
 
 /* Respect reduced-motion preferences. */
 @media (prefers-reduced-motion: reduce) {
-  .atmos-lightshaft, .atmos-candle, .atmos-flicker, .atmos-dust .mote {
+  .atmos-lightshaft, .atmos-dust .mote {
     animation: none !important;
   }
   .atmos-candle { opacity: 0.92; }

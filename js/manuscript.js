@@ -162,9 +162,11 @@
     return { pages, chapterIndex };
   }
 
-  // Codex pages (eager — this is the default view).
+  // Single pagination pass — ONE page geometry shared by both modes.
+  // Codex places these same folios two-up; scriptum stacks them. So a page
+  // looks identical in either view; only the arrangement differs.
   async function runPagedEngine() {
-    const r = await runPagedFor('css/paged-rules.css');
+    const r = await runPagedFor('css/paged-rules-scriptum.css');
     pagedPages = r.pages;
     chapterPageIndex = r.chapterIndex;
   }
@@ -200,7 +202,7 @@
   }
 
   // =========================================================
-  // CODEX MODE
+  // CODEX MODE — the same folios, two side-by-side with a spine.
   // =========================================================
   let spreads = [];
   let currentSpread = 0;
@@ -247,53 +249,18 @@
   }
 
   // =========================================================
-  // SCRIPTUM MODE — its own paged.js pass with a taller, wider page tuned
-  // for vertical reading, plus its own leaves.
+  // SCRIPTUM MODE — the same folios, stacked vertically.
   // =========================================================
-  let pagedPagesDoc = [];
-  let docLeaves = [];
-  let docPaginated = false;
-
-  function buildDocLeaves() {
-    docLeaves = [];
-    docLeaves.push({ type: 'frontispiece' });
-    if (isPlaceholder) { docLeaves.push({ type: 'placeholder' }); return; }
-    pagedPagesDoc.forEach((p, i) => {
-      docLeaves.push({ type: p.isPrelude ? 'prelude' : 'content', idx: i });
-    });
-  }
-  function docFolioForLeaf(leafIdx) {
-    let n = 0;
-    for (let i = 0; i <= leafIdx && i < docLeaves.length; i++) {
-      const lf = docLeaves[i];
-      if (lf.type === 'content' || lf.type === 'prelude') n++;
-    }
-    return toRoman(n);
-  }
-  function docLeafInnerHTML(leaf) {
-    if (leaf.type === 'frontispiece') return renderFrontispiece();
-    if (leaf.type === 'placeholder')  return `<div class="placeholder-note"><em>Liber nondum scriptus est.</em></div>`;
-    return pagedPagesDoc[leaf.idx].html;
-  }
-
-  async function ensureDocPaginated() {
-    if (docPaginated || isPlaceholder) { docPaginated = true; return; }
-    const r = await runPagedFor('css/paged-rules-scriptum.css');
-    pagedPagesDoc = r.pages;
-    docPaginated = true;
-  }
-
   function renderDocMode() {
     if (docColumn.children.length > 0) return;
-    buildDocLeaves();
-    docLeaves.forEach((leaf, i) => {
+    leaves.forEach((leaf, i) => {
       const div = document.createElement('div');
       div.className = `page recto doc-folio ${leafClasses(leaf)}`.trim();
-      div.innerHTML = docLeafInnerHTML(leaf);
+      div.innerHTML = leafInnerHTML(leaf);
       if (leaf.type === 'content' || leaf.type === 'prelude') {
         const folio = document.createElement('div');
         folio.className = 'folio';
-        folio.textContent = `fol. ${docFolioForLeaf(i)}`;
+        folio.textContent = `fol. ${folioForLeaf(i)}`;
         div.appendChild(folio);
       }
       docColumn.appendChild(div);
@@ -398,18 +365,12 @@
   });
 
   // ---- Mode toggle ---------------------------------------------------
-  async function setMode(mode) {
+  function setMode(mode) {
     if (mode === 'doc') {
       document.body.classList.remove('codex-mode');
       document.body.classList.add('doc-mode');
       modeToggle.textContent = 'scriptum';
       modeToggle.classList.add('active');
-      if (!docPaginated) {
-        loading.classList.remove('gone');
-        loading.textContent = 'conlegendo \u2026';
-        try { await ensureDocPaginated(); } catch (e) { console.error(e); }
-        loading.classList.add('gone');
-      }
       renderDocMode();
       fitDocScale();
     } else {
@@ -430,7 +391,8 @@
     if (!frame) return;
     const availW = frame.clientWidth - 24;   // small breathing room
     const availH = frame.clientHeight - 16;
-    const scale = Math.min(availW / 1200, availH / 900, 1.15);
+    // Codex spread is two 720×1040 folios side by side = 1440×1040.
+    const scale = Math.min(availW / 1440, availH / 1040, 1.05);
     document.documentElement.style.setProperty('--spread-scale', scale.toFixed(4));
   }
   function fitDocScale() {
