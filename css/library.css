@@ -397,3 +397,23 @@ html, body {
   }
   .atmos-candle { opacity: 0.92; }
 }
+
+/* =========================================================
+   Themed scrollbars — same aged-brass-on-leather treatment as the
+   reader, for any scroller on the library page.
+   ========================================================= */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gilt) rgba(15, 10, 5, 0.6);
+}
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-track { background: rgba(15, 10, 5, 0.6); border-radius: 6px; }
+*::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  border: 2px solid rgba(15, 10, 5, 0.6);
+  background: linear-gradient(180deg, var(--gilt-glow) 0%, var(--gilt) 45%, #7a5a18 100%);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f6e29c 0%, var(--gilt-glow) 50%, var(--gilt) 100%);
+}
+*::-webkit-scrollbar-corner { background: transparent; }
