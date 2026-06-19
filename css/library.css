@@ -127,6 +127,57 @@ html, body {
   filter: drop-shadow(0 26px 30px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(240,213,122,0.6));
 }
 
+/* ---- Closed-book depth: page block between the two covers ----
+   The book reads as a real ~200-leaf volume. Behind the front .cover sit
+   two stacked layers that peek out along the fore-edge (right) and the tail
+   (bottom): .book-pages (the cream block of page edges) and, just behind it,
+   .book-back (a sliver of the back leather cover). Because .desk-book tilts
+   the whole thing back (rotateX), those bottom/right protrusions present
+   themselves edge-on to the viewer — exactly where a closed book shows its
+   paper. .cover keeps overflow:hidden, so the block lives in this wrapper
+   (which does NOT clip) rather than inside the cover face. */
+.book { position: absolute; inset: 0; }
+.book .cover { z-index: 2; }
+
+.book-block { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.book-pages, .book-back { position: absolute; }
+
+/* The paper block. Fine vertical striations = individual leaves, so the
+   fore-edge reads as a thick ream rather than a flat cream slab. */
+.book-pages {
+  top: 1.8%; left: 2.4%; right: -3.6%; bottom: -4.8%;
+  border-radius: 2px 5px 6px 3px;
+  background-color: #e9dcbb;
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(120,92,46,0)    0 1.1px,
+      rgba(120,92,46,0.30) 1.1px 1.5px,
+      rgba(120,92,46,0)    1.5px 2.5px),
+    repeating-linear-gradient(0deg,
+      rgba(120,92,46,0)    0 1.4px,
+      rgba(120,92,46,0.14) 1.4px 1.8px),
+    linear-gradient(100deg, #d6c499 0%, #efe4c6 32%, #e2d1a6 100%);
+  box-shadow:
+    inset 0 0 9px rgba(120,90,40,0.30),
+    inset -2px 0 4px rgba(90,64,24,0.35),   /* deepen the fore-edge */
+    0 2px 6px rgba(0,0,0,0.40);
+}
+
+/* Back leather cover, a touch larger than the page block so its edge shows
+   beneath the paper — closing the sandwich. Colour follows the leather. */
+.book-back {
+  top: 2.7%; left: 3.0%; right: -5.0%; bottom: -6.6%;
+  border-radius: 2px 6px 7px 3px;
+  box-shadow: 0 3px 9px rgba(0,0,0,0.50);
+  background: #3a1110;
+}
+.book[data-leather="oxblood"]       .book-back { background: linear-gradient(100deg, #2e0908, #4a1614); }
+.book[data-leather="dark-green"]    .book-back { background: linear-gradient(100deg, #0c1f12, #244029); }
+.book[data-leather="tan"]           .book-back { background: linear-gradient(100deg, #3e2a13, #5c421f); }
+.book[data-leather="midnight-blue"] .book-back { background: linear-gradient(100deg, #061528, #0f2440); }
+.book[data-leather="vellum-cream"]  .book-back { background: linear-gradient(100deg, #b89e6b, #cdb787); }
+.book[data-leather="black"]         .book-back { background: linear-gradient(100deg, #050402, #1a140f); }
+
 /* CSS-rendered leather cover (original design) */
 .cover {
   position: absolute;
