@@ -154,11 +154,22 @@
     const titleHTML = title.toUpperCase().split(/\s+/).filter(Boolean).join('<br>');
     const orn = ornamentSVG(ornament);
 
+    // The book is a real closed volume: a thick block of cream page edges
+    // sandwiched between the front and back leather covers. The .book-block
+    // (page edges + back cover sliver) sits BEHIND the front .cover and peeks
+    // out along the fore-edge (right) and tail (bottom), so the book reads as a
+    // substantial ~200-leaf volume rather than two covers with a gap between.
     return `
-      <div class="cover" data-leather="${leather}" data-wear="${wear}">
-        <div class="cover-title">${titleHTML}</div>
-        ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
-        <div class="cover-wear"></div>
+      <div class="book" data-leather="${leather}" data-wear="${wear}">
+        <div class="book-block" aria-hidden="true">
+          <div class="book-back"></div>
+          <div class="book-pages"></div>
+        </div>
+        <div class="cover" data-leather="${leather}" data-wear="${wear}">
+          <div class="cover-title">${titleHTML}</div>
+          ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
+          <div class="cover-wear"></div>
+        </div>
       </div>
     `;
   };

@@ -119,7 +119,12 @@
       mote.style.width = mote.style.height = size.toFixed(1) + 'px';
       mote.style.left = startX + '%';
       mote.style.top = startY + '%';
-      const delay = initial ? rand(0, 8000) : 0;
+      // Initial motes start already mid-drift (negative seek-in) instead of
+      // waiting a random 0–8s before fading up from nothing. This is why the
+      // scene used to look static until you interacted — the effects were
+      // never gated behind a click, they just hadn't faded in yet. Respawned
+      // motes (initial === false) begin normally at delay 0.
+      const delay = initial ? -rand(0, dur) : 0;
       mote.animate([
         { transform: 'translate(0,0)', opacity: 0 },
         { opacity: maxOpacity, offset: 0.2 },
