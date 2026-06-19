@@ -500,7 +500,10 @@ body.doc-mode { overflow: hidden; }
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  background: linear-gradient(to bottom, #1a1208 0%, #0d0805 100%);
+  /* Transparent so the shared .reader-backdrop (fixed, full-viewport, behind
+     .reader) shows through behind the scrolling folios — exactly like codex.
+     Previously an opaque brown gradient here hid that library backdrop. */
+  background: transparent;
   scroll-behavior: smooth;
   padding: 28px 0 70px;
 }

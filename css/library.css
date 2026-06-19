@@ -68,12 +68,19 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Stage: letterboxed scene so the whole library photo always shows */
+/* Stage: letterboxed scene so the whole library photo always shows. The
+   stage itself carries a dimmed copy of the same library photo (cover, full
+   viewport) so the letterbox margins fill edge-to-edge with ambient library
+   instead of black bars — matching the reader's full-bleed backdrop. The
+   sharp, brighter .scene sits centered on top. */
 .stage {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #0b0805;
+  background:
+    linear-gradient(rgba(11,8,5,0.82), rgba(11,8,5,0.90)),
+    url('../assets/library.jpg') center / cover no-repeat;
+  background-color: #0b0805;
   display: flex;
   align-items: center;
   justify-content: center;
