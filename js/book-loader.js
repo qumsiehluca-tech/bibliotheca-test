@@ -161,16 +161,17 @@
     // substantial ~200-leaf volume rather than two covers with a gap between.
     return `
       <div class="book" data-leather="${leather}" data-wear="${wear}">
-        <div class="book-block" aria-hidden="true">
-          <div class="book-back"></div>
-          <div class="book-pages"></div>
-        </div>
-        <div class="book-spine" aria-hidden="true"></div>
-        <div class="cover" data-leather="${leather}" data-wear="${wear}">
-          <div class="cover-sheen" aria-hidden="true"></div>
-          <div class="cover-title">${titleHTML}</div>
-          ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
-          <div class="cover-wear"></div>
+        <div class="vol">
+          <div class="wall wall-spine" aria-hidden="true"></div>
+          <div class="wall wall-fore" aria-hidden="true"></div>
+          <div class="wall wall-head" aria-hidden="true"></div>
+          <div class="wall wall-tail" aria-hidden="true"></div>
+          <div class="cover" data-leather="${leather}" data-wear="${wear}">
+            <div class="cover-sheen" aria-hidden="true"></div>
+            <div class="cover-title">${titleHTML}</div>
+            ${orn ? `<div class="cover-ornament">${orn}</div>` : ''}
+            <div class="cover-wear"></div>
+          </div>
         </div>
       </div>
     `;
