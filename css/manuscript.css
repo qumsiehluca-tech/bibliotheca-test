@@ -803,20 +803,19 @@ body.doc-mode   .spread-frame { display: none; }
 *::-webkit-scrollbar-corner { background: transparent; }
 
 /* =========================================================
-   Quill cursor — a scribal nib replaces the default pointer
-   site-wide. Hotspot sits at the nib tip (6 40). The glyph has a
-   dark outline + pale fill so it stays legible on both the dark
-   library and the light parchment. Retina via image-set; a plain
-   url() fallback comes first for browsers without image-set cursors.
+   Cursor — a gilded, tooled arrow replaces the default pointer
+   EVERYWHERE (the familiar pointer shape, made medieval). Hotspot
+   at the arrow tip (3 2). Retina via image-set; a plain url()
+   fallback comes first for browsers without image-set cursors.
    ========================================================= */
-html, body {
-  cursor: url('../assets/cursors/quill.png') 6 40, auto;
-  cursor: image-set(url('../assets/cursors/quill.png') 1x,
-                    url('../assets/cursors/quill@2x.png') 2x) 6 40, auto;
+html, body, * {
+  cursor: url('../assets/cursors/pointer.png') 3 2, auto;
+  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
+                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
 }
 a, button, [role="button"], label, summary,
 input[type="button"], input[type="submit"] {
-  cursor: url('../assets/cursors/quill.png') 6 40, pointer;
-  cursor: image-set(url('../assets/cursors/quill.png') 1x,
-                    url('../assets/cursors/quill@2x.png') 2x) 6 40, pointer;
+  cursor: url('../assets/cursors/pointer.png') 3 2, pointer;
+  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
+                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, pointer;
 }
