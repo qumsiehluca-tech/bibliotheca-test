@@ -20,17 +20,16 @@
   const ROMAN = ['i','ii','iii','iv','v','vi','vii','viii','ix','x'];
   const DEFAULT_INDEX = 2;   // central position (Vita Caii) on first load
 
-  // --- Cover-flow tuning -------------------------------------------------
-  const SPREAD0   = 64;   // % translateX for the first neighbour
-  const SPREAD1   = 20;   // extra % per further step (cards bunch at the sides)
-  const TURN0     = 32;   // deg rotateY for the first neighbour
-  const TURN1     = 5;    // extra deg per further step
-  const DEPTH     = 78;   // px translateZ pushed back per step
-  const SCALE_K   = 0.06; // scale lost per step
-  const DIM_K     = 0.15; // brightness lost per step
-  const FADE_K    = 0.16; // opacity lost per step
-  const VISIBLE   = 3;    // steps beyond which a card is hidden
-  const DRAG_STEP = 90;   // px of drag that equals one card
+  // --- Wheel tuning ------------------------------------------------------
+  // Books are mounted around a vertical cylinder (a turning wheel). The front
+  // book faces the reader; its neighbours curve away around the rim, raking
+  // steeply toward edge-on so you read their spines / page-edges. Only a few
+  // are visible at once — the rest have rotated out of sight behind.
+  const DEG_STEP    = 42;   // angular gap between books on the rim
+  const RADIUS_K    = 1.42; // wheel radius as a multiple of a card's width
+  const VISIBLE_DEG = 92;   // books turned past this are hidden (≈ ±2–3 → 5–7 seen)
+  const FADE_DEG    = 24;   // soft fade over the last this-many degrees
+  const DRAG_STEP   = 70;   // px of drag that equals one book-step
 
   let manifests = [];
   let cards = [];
@@ -61,28 +60,33 @@
     cards.push(card);
   });
 
-  // ---- Lay the deck out for a given (fractional) centre index ------------
+  // ---- Lay the wheel out for a given (fractional) centre index ----------
   function layout(centre) {
+    const cardW = deck.clientWidth || 240;
+    const R = cardW * RADIUS_K;                 // wheel radius in px
+    deck.style.setProperty('--thick', (cardW * 0.185).toFixed(1) + 'px');
     for (let i = 0; i < cards.length; i++) {
-      const o = i - centre;                 // signed offset from centre
-      const a = Math.abs(o);
-      const sgn = o === 0 ? 0 : (o > 0 ? 1 : -1);
-      const ramp = Math.min(a, 1);          // 0..1 across the nearest step
-      const far  = Math.max(0, a - 1);      // whole steps beyond the first
+      const phi = (i - centre) * DEG_STEP;      // this book's angle on the rim
+      const a   = Math.abs(phi);
+      const rad = phi * Math.PI / 180;
 
-      const tx   = sgn * (ramp * SPREAD0 + far * SPREAD1);            // %
-      const ry   = -sgn * (ramp * TURN0 + far * TURN1);              // deg
-      const tz   = -a * DEPTH;                                       // px
-      const sc   = Math.max(0.6, 1 - a * SCALE_K);
-      const op   = a > VISIBLE ? 0 : Math.max(0, 1 - a * FADE_K);
-      const br   = Math.max(0.4, 1 - a * DIM_K);
+      // Position on the cylinder surface; front book at z=0, rest curve back.
+      const tx = R * Math.sin(rad);
+      const tz = R * Math.cos(rad) - R;
+      // Tangent to the rim: rotate by the same angle so side books rake away.
+      const ry = phi;
+
+      const op = a >= VISIBLE_DEG ? 0
+               : Math.max(0, Math.min(1, (VISIBLE_DEG - a) / FADE_DEG));
+      const br = Math.max(0.32, 0.45 + 0.55 * Math.cos(rad));   // darken as they turn
 
       const card = cards[i];
       card.style.transform =
-        `translate(-50%,-50%) translateX(${tx}%) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
-      card.style.opacity = op;
-      card.style.zIndex  = String(1000 - Math.round(a * 10));
-      card.style.filter  = `brightness(${br.toFixed(3)}) drop-shadow(0 14px 18px rgba(0,0,0,${(0.5 - a*0.08).toFixed(3)}))`;
+        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg)`;
+      card.style.opacity = op.toFixed(3);
+      card.style.zIndex  = String(2000 + Math.round(tz));        // nearer = on top
+      card.style.filter  =
+        `brightness(${br.toFixed(3)}) drop-shadow(0 16px 20px rgba(0,0,0,${(0.45 * Math.max(0.2, Math.cos(rad))).toFixed(3)}))`;
       card.style.pointerEvents = op < 0.05 ? 'none' : 'auto';
       card.classList.toggle('is-center', Math.round(centre) === i);
     }
@@ -189,6 +193,8 @@
   });
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  window.addEventListener('resize', () => layout(cur));
 
   // ---- First paint ------------------------------------------------------
   settleTo(index, false);
