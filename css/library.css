@@ -117,13 +117,24 @@ html, body {
   aspect-ratio: 7 / 10;
   transform: translate(-50%, -50%);
   transform-style: preserve-3d;
-  perspective: 1500px;
+  perspective: 1250px;
   perspective-origin: 50% 42%;
   z-index: 5;                /* above the atmosphere layers */
   touch-action: pan-y;       /* let us claim horizontal drags */
   outline: none;
 }
 .deck.grabbing { cursor: grabbing; }
+.deck::before {                 /* soft contact shadow grounding the wheel */
+  content:"";
+  position:absolute;
+  left:50%; bottom:-6%;
+  width:150%; height:14%;
+  transform:translateX(-50%);
+  background:radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 45%, transparent 72%);
+  filter:blur(3px);
+  pointer-events:none;
+  z-index:0;
+}
 
 .deck-card {
   position: absolute;
@@ -151,8 +162,6 @@ html, body {
     0 0 22px rgba(240,213,122,0.20); }
 
 /* Opening: the centred card lifts and zooms toward the reader. */
-.deck-card .book-pages { right: -2.4%; bottom: -3.2%; }
-.deck-card .book-back  { right: -3.2%; bottom: -4.6%; }
 
 .deck-card.opening {
   transition: transform 820ms cubic-bezier(.65,0,.35,1), filter 820ms ease;
@@ -169,87 +178,64 @@ html, body {
    floating over a slab. Layer order: page block (1) < front cover (3)
    < spine (4, sits on the bound left edge with a groove).
    ========================================================= */
-.book { position: absolute; inset: 0; }
-.book .cover      { z-index: 3; }
-.book .book-spine { z-index: 4; }
-.book-block { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.book-pages, .book-back { position: absolute; }
+.book { position: absolute; inset: 0; transform-style: preserve-3d; }
+.vol  { position: absolute; inset: 0; transform-style: preserve-3d; }
+.book .cover { z-index: 3; }
 
-/* per-leather spine + back-board colours (vars keep it DRY) */
-.book[data-leather="oxblood"]       { --spine-leather:#4a1614; --back-leather:#2e0908; }
-.book[data-leather="dark-green"]    { --spine-leather:#1a3a20; --back-leather:#0c1f12; }
-.book[data-leather="tan"]           { --spine-leather:#5c421f; --back-leather:#3e2a13; }
-.book[data-leather="midnight-blue"] { --spine-leather:#13294a; --back-leather:#061528; }
-.book[data-leather="vellum-cream"]  { --spine-leather:#c9b384; --back-leather:#b89e6b; }
-.book[data-leather="black"]         { --spine-leather:#1a140f; --back-leather:#050402; }
+/* per-leather spine colour (vars keep it DRY) */
+.book[data-leather="oxblood"]       { --spine-leather:#4a1614; }
+.book[data-leather="dark-green"]    { --spine-leather:#1a3a20; }
+.book[data-leather="tan"]           { --spine-leather:#5c421f; }
+.book[data-leather="midnight-blue"] { --spine-leather:#13294a; }
+.book[data-leather="vellum-cream"]  { --spine-leather:#c9b384; }
+.book[data-leather="black"]         { --spine-leather:#1a140f; }
 
-/* Back board — a hair larger than the paper so leather overhangs the block
-   (the "square" of a bound book) at the tail and fore-edge. */
-.book-back {
-  top: 1.2%; left: 1.4%; right: -4.6%; bottom: -6.4%;
-  border-radius: 3px 7px 9px 4px;
-  background: var(--back-leather, #3a1110);
-  box-shadow: 0 5px 11px rgba(0,0,0,0.55);
+/* The volume's real thickness: four walls hinged BACK from the cover's
+   edges, so a book raking away on the wheel shows its spine / page-edges
+   instead of vanishing to a line. --thick (px) is set per-frame by JS. */
+.wall { position: absolute; overflow: hidden; backface-visibility: hidden; }
+
+/* cream page-edge fill — each fine line a leaf */
+.wall-fore, .wall-head, .wall-tail {
+  background-color: #e6d9b6;
+  box-shadow: inset 0 0 6px rgba(90,64,24,0.32);
 }
-
-/* Paper block — inset slightly from the back board, peeking past the front
-   board at the fore-edge (right) and tail (bottom). Ruled (each line a leaf),
-   gently gathered, with a soft self-shadow so it tucks UNDER the front lid. */
-.book-pages {
-  top: 2.1%; left: 2.6%; right: -3.4%; bottom: -4.6%;
-  border-radius: 1px 3px 4px 2px;
-  background-color: #e9dcbb;
+.wall-fore {                       /* right fore-edge */
+  top: 0; right: 0; height: 100%; width: var(--thick, 38px);
+  transform-origin: right center; transform: rotateY(90deg);
   background-image:
-    repeating-linear-gradient(90deg,
-      rgba(108,82,38,0)    0 1.0px,
-      rgba(108,82,38,0.42) 1.0px 1.4px,
-      rgba(150,120,70,0)   1.4px 2.3px),
-    repeating-linear-gradient(0deg,
-      rgba(108,82,38,0)    0 1.2px,
-      rgba(108,82,38,0.20) 1.2px 1.6px),
-    linear-gradient(100deg, #cdb98c 0%, #efe4c6 30%, #e0cea0 70%, #d2bd8b 100%);
-  box-shadow:
-    inset 0 0 10px rgba(108,80,36,0.28),
-    inset -3px -3px 7px rgba(88,62,22,0.42),
-    inset 2px 3px 4px rgba(255,250,236,0.55),
-    0 1px 3px rgba(0,0,0,0.35);
+    repeating-linear-gradient(0deg, rgba(120,92,46,0) 0 1px, rgba(120,92,46,0.40) 1px 1.5px, rgba(120,92,46,0) 1.5px 2.6px),
+    linear-gradient(90deg, #c2b083, #efe6cc 45%, #d2bf90);
 }
-/* Contact shadow cast by the front lid onto the paper just below it. */
-.book-pages::before {
-  content:""; position:absolute; inset:0;
-  border-radius: inherit;
-  box-shadow: inset 0 7px 7px -5px rgba(0,0,0,0.45),
-              inset 7px 0 7px -5px rgba(0,0,0,0.35);
-  pointer-events:none;
+.wall-head {                       /* top edge */
+  left: 0; top: 0; width: 100%; height: var(--thick, 38px);
+  transform-origin: center top; transform: rotateX(-90deg);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(120,92,46,0) 0 1px, rgba(120,92,46,0.34) 1px 1.5px, rgba(120,92,46,0) 1.5px 2.6px),
+    linear-gradient(0deg, #c9b78a, #efe6cc 50%, #d6c499);
 }
-
-/* Spine — wrapped leather on the bound left edge, with a groove against the
-   board, raised hubs/bands, and a thin gilt fillet. Biggest "real book" cue. */
-.book-spine {
-  position: absolute;
-  top: -0.5%; bottom: -0.5%; left: -1.5%;
-  width: 12.5%;
-  border-radius: 5px 1px 1px 5px;
+.wall-tail {                       /* bottom edge */
+  left: 0; bottom: 0; width: 100%; height: var(--thick, 38px);
+  transform-origin: center bottom; transform: rotateX(90deg);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(120,92,46,0) 0 1px, rgba(120,92,46,0.34) 1px 1.5px, rgba(120,92,46,0) 1.5px 2.6px),
+    linear-gradient(0deg, #b9a87d, #e2d8bd 50%, #c6b488);
+}
+/* spine — leather with raised hubs + gilt head/tail fillets */
+.wall-spine {
+  top: 0; left: 0; height: 100%; width: var(--thick, 38px);
+  transform-origin: left center; transform: rotateY(-90deg);
   background:
-    linear-gradient(90deg,
-      rgba(255,255,255,0.05) 0%, transparent 18%,
-      rgba(0,0,0,0.25) 82%, rgba(0,0,0,0.5) 100%),
+    linear-gradient(180deg, transparent 5.5%, var(--gilt) 5.5% 6.4%, transparent 6.4% 92.5%, var(--gilt) 92.5% 93.4%, transparent 93.4%),
+    repeating-linear-gradient(180deg,
+      transparent 0 11%,
+      rgba(255,238,200,0.10) 11% 11.7%,
+      rgba(0,0,0,0.45) 12.2% 15.2%,
+      rgba(255,238,200,0.08) 15.7% 16.4%,
+      transparent 16.4% 25%),
+    linear-gradient(90deg, rgba(0,0,0,0.40), rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.45)),
     var(--spine-leather, #4a1614);
-  box-shadow: 0 5px 11px rgba(0,0,0,0.5);
-}
-.book-spine::before {                       /* raised hubs/bands */
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  background: repeating-linear-gradient(180deg,
-    transparent 0 11.5%,
-    rgba(255,238,200,0.10) 11.5% 12.2%,
-    rgba(0,0,0,0.42) 12.6% 15.4%,
-    rgba(255,238,200,0.08) 15.8% 16.5%,
-    transparent 16.5% 25%);
-}
-.book-spine::after {                        /* gilt fillet beside the board */
-  content:""; position:absolute; top:6%; bottom:6%; right:2px; width:1px;
-  background: linear-gradient(180deg, transparent, var(--gilt) 18% 82%, transparent);
-  opacity:0.55;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
 }
 
 /* ---- Front board (leather cover face) ---- */
@@ -262,8 +248,9 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12% 9% 12% 14%;          /* extra left padding clears the spine */
+  padding: 12% 10%;
   user-select: none;
+  transform: translateZ(0.2px);     /* keep the cover the front-most face */
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.12),
     inset 0 -3px 7px rgba(0,0,0,0.5),
@@ -288,7 +275,7 @@ html, body {
 }
 /* Gilt tooled rule, inset to clear the spine. */
 .cover::before {
-  content:""; position:absolute; inset: 7% 7% 8% 11%;
+  content:""; position:absolute; inset: 8%;
   border: 1px solid var(--gilt);
   border-radius: 2px;
   opacity: 0.5;
@@ -507,20 +494,19 @@ html, body {
 *::-webkit-scrollbar-corner { background: transparent; }
 
 /* =========================================================
-   Quill cursor — a scribal nib replaces the default pointer
-   site-wide. Hotspot sits at the nib tip (6 40). The glyph has a
-   dark outline + pale fill so it stays legible on both the dark
-   library and the light parchment. Retina via image-set; a plain
-   url() fallback comes first for browsers without image-set cursors.
+   Cursor — a gilded, tooled arrow replaces the default pointer
+   EVERYWHERE (the familiar pointer shape, made medieval). Hotspot
+   at the arrow tip (3 2). Retina via image-set; a plain url()
+   fallback comes first for browsers without image-set cursors.
    ========================================================= */
-html, body {
-  cursor: url('../assets/cursors/quill.png') 6 40, auto;
-  cursor: image-set(url('../assets/cursors/quill.png') 1x,
-                    url('../assets/cursors/quill@2x.png') 2x) 6 40, auto;
+html, body, * {
+  cursor: url('../assets/cursors/pointer.png') 3 2, auto;
+  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
+                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
 }
 a, button, [role="button"], label, summary,
 input[type="button"], input[type="submit"] {
-  cursor: url('../assets/cursors/quill.png') 6 40, pointer;
-  cursor: image-set(url('../assets/cursors/quill.png') 1x,
-                    url('../assets/cursors/quill@2x.png') 2x) 6 40, pointer;
+  cursor: url('../assets/cursors/pointer.png') 3 2, pointer;
+  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
+                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, pointer;
 }
