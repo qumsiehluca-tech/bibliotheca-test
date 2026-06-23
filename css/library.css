@@ -39,6 +39,13 @@
 }
 
 :root {
+  /* designed cursors (gilt) — every state routes through these vars */
+  --cur-pointer: image-set(url('../assets/cursors/pointer.png') 1x,
+                           url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
+  --cur-drag:    image-set(url('../assets/cursors/drag.png') 1x,
+                           url('../assets/cursors/drag@2x.png') 2x) 18 9, grab;
+  --cur-drag-on: image-set(url('../assets/cursors/drag.png') 1x,
+                           url('../assets/cursors/drag@2x.png') 2x) 18 9, grabbing;
   --gilt:        #c8a14a;
   --gilt-glow:   #f0d57a;
   --oxblood:     #5e2422;
@@ -112,7 +119,7 @@ html, body {
 .deck {
   position: absolute;
   left: 50.5%;
-  top: 60%;
+  top: 72%;
   width: 15.5%;
   aspect-ratio: 7 / 10;
   transform: translate(-50%, -50%);
@@ -123,7 +130,8 @@ html, body {
   touch-action: pan-y;       /* let us claim horizontal drags */
   outline: none;
 }
-.deck.grabbing { cursor: grabbing; }
+.deck, .deck * { cursor: var(--cur-drag); }
+.deck.grabbing, .deck.grabbing * { cursor: var(--cur-drag-on); }
 .deck::before {                 /* soft contact shadow grounding the wheel */
   content:"";
   position:absolute;
@@ -384,7 +392,7 @@ html, body {
   width: clamp(40px, 3.6vw, 52px);
   height: clamp(40px, 3.6vw, 52px);
   border-radius: 50%;
-  cursor: pointer;
+  cursor: var(--cur-pointer);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -500,13 +508,6 @@ html, body {
    fallback comes first for browsers without image-set cursors.
    ========================================================= */
 html, body, * {
-  cursor: url('../assets/cursors/pointer.png') 3 2, auto;
-  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
-                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
-}
-a, button, [role="button"], label, summary,
-input[type="button"], input[type="submit"] {
-  cursor: url('../assets/cursors/pointer.png') 3 2, pointer;
-  cursor: image-set(url('../assets/cursors/pointer.png') 1x,
-                    url('../assets/cursors/pointer@2x.png') 2x) 3 2, pointer;
+  cursor: url('../assets/cursors/pointer.png') 3 2, auto;   /* plain fallback */
+  cursor: var(--cur-pointer);
 }
