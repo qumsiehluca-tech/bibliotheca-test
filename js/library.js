@@ -47,6 +47,13 @@
     return;
   }
   if (index >= manifests.length) index = cur = 0;
+  const N = manifests.length;
+
+  // Circular helpers — the wheel loops endlessly. `cur` is a CONTINUOUS index
+  // (never wrapped, so motion is smooth across the seam); the displayed/opened
+  // index is derived mod N, and each book's angle uses the SHORTEST way round.
+  function wrapOff(o) { o = ((o % N) + N) % N; if (o > N / 2) o -= N; return o; }
+  function curIndex() { return ((Math.round(cur) % N) + N) % N; }
 
   // ---- Build one card per book (once) -----------------------------------
   manifests.forEach((m, i) => {
@@ -66,7 +73,7 @@
     const R = cardW * RADIUS_K;                 // wheel radius in px
     deck.style.setProperty('--thick', (cardW * 0.185).toFixed(1) + 'px');
     for (let i = 0; i < cards.length; i++) {
-      const phi = (i - centre) * DEG_STEP;      // this book's angle on the rim
+      const phi = wrapOff(i - centre) * DEG_STEP;   // shortest way round the rim
       const a   = Math.abs(phi);
       const rad = phi * Math.PI / 180;
 
@@ -88,7 +95,7 @@
       card.style.filter  =
         `brightness(${br.toFixed(3)}) drop-shadow(0 16px 20px rgba(0,0,0,${(0.45 * Math.max(0.2, Math.cos(rad))).toFixed(3)}))`;
       card.style.pointerEvents = op < 0.05 ? 'none' : 'auto';
-      card.classList.toggle('is-center', Math.round(centre) === i);
+      card.classList.toggle('is-center', Math.abs(wrapOff(i - centre)) < 0.5);
     }
   }
 
@@ -101,8 +108,8 @@
 
   // ---- Snap to the nearest card and settle ------------------------------
   function settleTo(target, animate) {
-    index = (target + manifests.length) % manifests.length;
-    cur = index;
+    cur = target;                 // continuous — never wrapped
+    index = curIndex();           // displayed/opened book (mod N)
     deck.classList.toggle('animating', !!animate);
     layout(cur);
     updateChrome();
@@ -110,7 +117,7 @@
 
   function changeBy(delta) {
     if (inTransition) return;
-    settleTo(index + delta, true);
+    settleTo(Math.round(cur) + delta, true);
   }
   prevBtn.addEventListener('click', () => changeBy(-1));
   nextBtn.addEventListener('click', () => changeBy(+1));
@@ -125,7 +132,7 @@
     const dx = e.clientX - dragStartX;
     moved = Math.max(moved, Math.abs(dx));
     // dragging right (positive dx) brings the PREVIOUS book to centre
-    cur = clamp(dragStartCur - dx / DRAG_STEP, -0.5, manifests.length - 0.5);
+    cur = dragStartCur - dx / DRAG_STEP;          // unbounded — the wheel loops
     const now = performance.now();
     vx = (e.clientX - lastX) / Math.max(1, now - lastT);
     lastX = e.clientX; lastT = now;
@@ -138,10 +145,9 @@
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     if (moved > 6) {                         // a real drag: snap with momentum
-      let target = clamp(Math.round(cur - vx * 6), 0, manifests.length - 1);
-      settleTo(target, true);
+      settleTo(Math.round(cur - vx * 6), true);
     } else {                                 // a tap: snap back cleanly
-      settleTo(index, true);
+      settleTo(Math.round(cur), true);
     }
   }
   deck.addEventListener('pointerdown', (e) => {
@@ -163,7 +169,7 @@
     if (!card) return;
     const i = +card.dataset.i;
     if (i === index) openCurrent();
-    else settleTo(i, true);
+    else settleTo(Math.round(cur + wrapOff(i - cur)), true);   // shortest way round
   });
 
   // ---- Open the centred book --------------------------------------------
