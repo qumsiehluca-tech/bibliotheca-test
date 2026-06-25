@@ -16,9 +16,15 @@
   const prevBtn        = document.getElementById('prevBtn');
   const nextBtn        = document.getElementById('nextBtn');
   const bookIndex      = document.getElementById('bookIndex');
+  const viewToggle     = document.getElementById('viewToggle');
 
   const ROMAN = ['i','ii','iii','iv','v','vi','vii','viii','ix','x'];
   const DEFAULT_INDEX = 2;   // central position (Vita Caii) on first load
+
+  // Display mode — 'vertical' (upright wheel) or 'flat' (one book on the desk).
+  const VIEW_KEY = 'bibliotheca:view';
+  let viewMode = 'flat';
+  try { if (localStorage.getItem(VIEW_KEY) === 'vertical') viewMode = 'vertical'; } catch (_) {}
 
   // --- Wheel tuning ------------------------------------------------------
   // Books are mounted around a vertical cylinder (a turning wheel). The front
@@ -70,41 +76,50 @@
     cards.push(card);
   });
 
-  // ---- Lay the wheel out for a given (fractional) centre index ----------
+  // ---- Lay the books out for a given (fractional) centre index ----------
+  // Two display modes:
+  //   'vertical' — the upright cylinder wheel (several books raking around a rim)
+  //   'flat'     — only the centred book, lying flat on the desk; neighbours
+  //                slide off and fade out so a single volume is presented.
   function layout(centre) {
     const cardW = deck.clientWidth || 240;
     const R = cardW * RADIUS_K;                 // wheel radius in px
     deck.style.setProperty('--thick', (cardW * 0.185).toFixed(1) + 'px');
     for (let i = 0; i < cards.length; i++) {
-      const off = wrapOff(i - centre);              // signed offset in book-steps
-      const phi = off * DEG_STEP;                   // shortest way round the rim
-      const a   = Math.abs(phi);
-      const rad = phi * Math.PI / 180;
+      const off = wrapOff(i - centre);          // signed offset in book-steps
+      const a   = Math.abs(off);
+      let tx, ty, tz, ry, rx, op, shadow, br;
 
-      // Position on the cylinder surface; front book at z=0, rest curve back.
-      const tx = R * Math.sin(rad);
-      const tz = R * Math.cos(rad) - R;
-      // Parabola: side books sink along y = -k·x² so the row arcs downward.
-      const ty = cardW * PARA_K * off * off;
-      // Tangent to the rim: rotate by the same angle so side books rake away.
-      const ry = phi;
-
-      const op0 = a >= VISIBLE_DEG ? 0
-                : Math.max(0, Math.min(1, (VISIBLE_DEG - a) / FADE_DEG));
-      // Non-centred books go a little transparent (focus stays on the front one).
-      const centred = 1 - Math.min(1, Math.abs(off));
-      const op = op0 * (SIDE_FADE + (1 - SIDE_FADE) * centred);
-      const br = Math.max(0.32, 0.45 + 0.55 * Math.cos(rad));   // darken as they turn
+      if (viewMode === 'flat') {
+        // Flat on the table; only the centred book shows.
+        tx = off * cardW * 0.66;                // neighbours slide aside
+        ty = 0; tz = 0; ry = 0; rx = TILT;
+        op = Math.max(0, 1 - a * 1.35);         // fast fade → just the centre
+        br = 1;
+        shadow = 0.4 * Math.max(0, 1 - a);
+      } else {
+        // Upright cylinder wheel.
+        const phi = off * DEG_STEP;
+        const rad = phi * Math.PI / 180;
+        const adeg = Math.abs(phi);
+        tx = R * Math.sin(rad);
+        tz = R * Math.cos(rad) - R;
+        ty = 0; ry = phi; rx = 0;
+        op = adeg >= VISIBLE_DEG ? 0
+           : Math.max(0, Math.min(1, (VISIBLE_DEG - adeg) / FADE_DEG));
+        br = Math.max(0.32, 0.45 + 0.55 * Math.cos(rad));
+        shadow = 0.45 * Math.max(0.2, Math.cos(rad));
+      }
 
       const card = cards[i];
       card.style.transform =
-        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateY(${ty.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg) rotateX(${TILT}deg)`;
+        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateY(${ty.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg) rotateX(${rx}deg)`;
       card.style.opacity = op.toFixed(3);
-      card.style.zIndex  = String(2000 + Math.round(tz));        // nearer = on top
+      card.style.zIndex  = String(2000 + Math.round(tz) - Math.round(a * 10));
       card.style.filter  =
-        `brightness(${br.toFixed(3)}) drop-shadow(0 16px 20px rgba(0,0,0,${(0.45 * Math.max(0.2, Math.cos(rad))).toFixed(3)}))`;
+        `brightness(${br.toFixed(3)}) drop-shadow(0 16px 20px rgba(0,0,0,${shadow.toFixed(3)}))`;
       card.style.pointerEvents = op < 0.05 ? 'none' : 'auto';
-      card.classList.toggle('is-center', Math.abs(off) < 0.5);
+      card.classList.toggle('is-center', a < 0.5);
     }
   }
 
@@ -130,6 +145,29 @@
   }
   prevBtn.addEventListener('click', () => changeBy(-1));
   nextBtn.addEventListener('click', () => changeBy(+1));
+
+  // ---- View mode (flat ⇄ vertical) --------------------------------------
+  function applyView() {
+    deck.classList.toggle('view-flat', viewMode === 'flat');
+    deck.classList.toggle('view-vertical', viewMode === 'vertical');
+    if (viewToggle) {
+      viewToggle.querySelectorAll('[data-view]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.view === viewMode));
+    }
+    layout(cur);
+  }
+  function setView(mode) {
+    if (mode === viewMode) return;
+    viewMode = mode;
+    try { localStorage.setItem(VIEW_KEY, mode); } catch (_) {}
+    applyView();
+  }
+  if (viewToggle) {
+    viewToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-view]');
+      if (btn) setView(btn.dataset.view);
+    });
+  }
 
   // ---- Drag / flick to rotate the deck ----------------------------------
   // We track move/up on window (rather than setPointerCapture, which would
@@ -214,7 +252,9 @@
   window.addEventListener('resize', () => layout(cur));
 
   // ---- First paint ------------------------------------------------------
-  settleTo(index, false);
+  cur = index = DEFAULT_INDEX < manifests.length ? DEFAULT_INDEX : 0;
+  applyView();
+  updateChrome();
 
   // ---- Drifting dust motes in the light ---------------------------------
   (function spawnDust() {
