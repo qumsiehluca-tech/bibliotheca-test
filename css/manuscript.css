@@ -30,13 +30,19 @@
 }
 
 :root {
-  /* designed cursors (gilt) — every state routes through these vars */
-  --cur-pointer: image-set(url('../assets/cursors/pointer.png') 1x,
-                           url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
-  --cur-drag:    image-set(url('../assets/cursors/drag.png') 1x,
-                           url('../assets/cursors/drag@2x.png') 2x) 18 9, grab;
-  --cur-drag-on: image-set(url('../assets/cursors/drag.png') 1x,
-                           url('../assets/cursors/drag@2x.png') 2x) 18 9, grabbing;
+  /* Designed gilt cursors. Each has a plain url() value (universally
+     supported, so no state ever falls back to the white OS cursor) plus a
+     retina image-set twin, applied as a second declaration. */
+  --cur:     url('../assets/cursors/pointer.png') 3 2, auto;
+  --cur2:    image-set(url('../assets/cursors/pointer.png') 1x, url('../assets/cursors/pointer@2x.png') 2x) 3 2, auto;
+  --hand:    url('../assets/cursors/hand.png') 9 2, pointer;
+  --hand2:   image-set(url('../assets/cursors/hand.png') 1x, url('../assets/cursors/hand@2x.png') 2x) 9 2, pointer;
+  --text:    url('../assets/cursors/text.png') 7 15, text;
+  --text2:   image-set(url('../assets/cursors/text.png') 1x, url('../assets/cursors/text@2x.png') 2x) 7 15, text;
+  --drag:    url('../assets/cursors/drag.png') 18 9, grab;
+  --drag2:   image-set(url('../assets/cursors/drag.png') 1x, url('../assets/cursors/drag@2x.png') 2x) 18 9, grab;
+  --dragon:  url('../assets/cursors/drag.png') 18 9, grabbing;
+  --dragon2: image-set(url('../assets/cursors/drag.png') 1x, url('../assets/cursors/drag@2x.png') 2x) 18 9, grabbing;
   --paper:       #f1e6cf;
   --paper-deep:  #e3d3b0;
   --paper-edge:  #d4be8e;
@@ -135,7 +141,7 @@ body.doc-mode { overflow: hidden; }
   background: transparent;
   border: none;
   text-decoration: none;
-  cursor: var(--cur-pointer);
+  cursor: var(--hand); cursor: var(--hand2);
   font: inherit;
   letter-spacing: 0.06em;
   padding: 4px 10px;
@@ -480,7 +486,7 @@ body.doc-mode { overflow: hidden; }
   height: 44px;
   background: transparent;
   border: none;
-  cursor: var(--cur-pointer);
+  cursor: var(--hand); cursor: var(--hand2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,7 +499,7 @@ body.doc-mode { overflow: hidden; }
 .spread-frame .turn:hover { opacity: 1; color: var(--gilt-light); transform: scale(1.1); }
 .spread-frame .turn.prev { left: 12px; }
 .spread-frame .turn.next { right: 12px; }
-.spread-frame .turn:disabled { opacity: 0.18; cursor: var(--cur-pointer); transform: none; }
+.spread-frame .turn:disabled { opacity: 0.18; cursor: var(--cur); cursor: var(--cur2); transform: none; }
 
 .spread.turning-out { opacity: 0; transition: opacity 220ms ease; }
 .spread.turning-in  { opacity: 1; transition: opacity 280ms ease; }
@@ -608,7 +614,7 @@ body.doc-mode   .spread-frame { display: none; }
 .tabula-sheet li button {
   background: transparent;
   border: none;
-  cursor: var(--cur-pointer);
+  cursor: var(--hand); cursor: var(--hand2);
   color: var(--ink);
   font: inherit;
   text-align: left;
@@ -628,7 +634,7 @@ body.doc-mode   .spread-frame { display: none; }
   background: transparent;
   border: none;
   color: var(--ink-soft);
-  cursor: var(--cur-pointer);
+  cursor: var(--hand); cursor: var(--hand2);
   font-size: 22px;
   font-family: 'EB Garamond', serif;
 }
@@ -723,6 +729,25 @@ body.doc-mode   .spread-frame { display: none; }
   text-shadow: 0 0 0.6px rgba(94, 15, 15, 0.4);
 }
 
+/* paged.js inlines an UNGUARDED `p.chapter-opener::first-letter` from the
+   (locked) scriptum paging stylesheet, which re-applies a drop cap to the
+   continuation of a paragraph that broke across a page — e.g. the second
+   folio of the Epilogus. These selectors target only the DISPLAYED folios
+   (never the paginator's host, so fragmentation is unaffected) and reset the
+   continuation's first letter back to plain body text. */
+.page p.chapter-opener[data-split-from]::first-letter,
+.doc-folio p.chapter-opener[data-split-from]::first-letter {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
 /* =========================================================
    Signaculum — silk bookmark ribbon, tucked into the top-right
    of the reading area (clears the topbar). Faded when no mark is
@@ -737,7 +762,7 @@ body.doc-mode   .spread-frame { display: none; }
   height: 64px;
   padding: 0;
   border: 0;
-  cursor: var(--cur-pointer);
+  cursor: var(--hand); cursor: var(--hand2);
   background:
     linear-gradient(90deg, rgba(255,255,255,0.16) 0 2px, transparent 2px 7px),
     linear-gradient(180deg, #6e1414 0%, #8b1a1a 55%, #5e0f0f 100%);
@@ -815,7 +840,35 @@ body.doc-mode   .spread-frame { display: none; }
    at the arrow tip (3 2). Retina via image-set; a plain url()
    fallback comes first for browsers without image-set cursors.
    ========================================================= */
-html, body, * {
-  cursor: url('../assets/cursors/pointer.png') 3 2, auto;   /* plain fallback */
-  cursor: var(--cur-pointer);
+html, body, * { cursor: var(--cur); cursor: var(--cur2); }
+/* Reading text gets a gilt I-beam, so selecting text shows the designed
+   cursor instead of reverting to the white system caret. */
+.doc-folio, .doc-folio p, .doc-column, .page p,
+.prelude-body, .verse, .chapter-title, .fp-title, .fp-subtitle {
+  cursor: var(--text); cursor: var(--text2);
 }
+
+/* Autoscroll anchor — a small gilt compass dropped where the wheel was
+   pressed; the page scrolls toward the pointer's side of it. */
+.autoscroll-puck {
+  position: fixed;
+  width: 38px; height: 38px;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--gilt);
+  background:
+    radial-gradient(circle at center, rgba(240,213,122,0.18) 0%, rgba(20,13,6,0.55) 70%);
+  box-shadow: 0 0 12px rgba(240,213,122,0.4), inset 0 0 8px rgba(0,0,0,0.5);
+}
+.autoscroll-puck::before,
+.autoscroll-puck::after {
+  content: "";
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.autoscroll-puck::before { top: 4px;    border-bottom: 6px solid var(--gilt-light); }
+.autoscroll-puck::after  { bottom: 4px; border-top: 6px solid var(--gilt-light); }
