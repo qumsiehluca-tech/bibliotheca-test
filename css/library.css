@@ -514,3 +514,9 @@ html, body {
    fallback comes first for browsers without image-set cursors.
    ========================================================= */
 html, body, * { cursor: var(--cur); cursor: var(--cur2); }
+
+/* While the wheel is being dragged, keep the grab cursor everywhere the
+   pointer may roam (not just over the deck). */
+.deck-dragging, .deck-dragging * {
+  cursor: var(--dragon) !important;
+}
