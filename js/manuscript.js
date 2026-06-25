@@ -537,5 +537,51 @@
     }
   }
   initSignaculum();
+  initAutoScroll();
+
+  // =========================================================
+  // Middle-click autoscroll (scriptum mode). The browser's native autoscroll
+  // shows the OS puck cursor, which breaks the spell — so we run our own:
+  // press the wheel, a gilt compass drops, and the page glides at a speed set
+  // by how far the pointer sits from that anchor. Any other input cancels it.
+  // =========================================================
+  function initAutoScroll() {
+    let active = false, anchorY = 0, lastY = 0, raf = 0, puck = null;
+
+    function stop() {
+      if (!active) return;
+      active = false;
+      cancelAnimationFrame(raf);
+      if (puck) { puck.remove(); puck = null; }
+      document.body.style.removeProperty('cursor');
+    }
+    function loop() {
+      if (!active) return;
+      const dy = lastY - anchorY;
+      const mag = Math.max(0, Math.abs(dy) - 14);     // dead-zone near the anchor
+      docFrame.scrollTop += Math.sign(dy) * mag * 0.16;
+      raf = requestAnimationFrame(loop);
+    }
+
+    docFrame.addEventListener('mousedown', (e) => {
+      if (e.button !== 1) return;                      // middle button only
+      if (!document.body.classList.contains('doc-mode')) return;
+      e.preventDefault();                              // suppress native autoscroll
+      if (active) { stop(); return; }
+      active = true; anchorY = lastY = e.clientY;
+      puck = document.createElement('div');
+      puck.className = 'autoscroll-puck';
+      puck.style.left = e.clientX + 'px';
+      puck.style.top = e.clientY + 'px';
+      document.body.appendChild(puck);
+      document.body.style.cursor = "url('assets/cursors/scroll.png') 9 16, auto";
+      raf = requestAnimationFrame(loop);
+    });
+    window.addEventListener('mousemove', (e) => { lastY = e.clientY; });
+    window.addEventListener('mousedown', (e) => { if (active && e.button !== 1) stop(); });
+    window.addEventListener('wheel', stop, { passive: true });
+    window.addEventListener('keydown', stop);
+    window.addEventListener('blur', stop);
+  }
 
 })();

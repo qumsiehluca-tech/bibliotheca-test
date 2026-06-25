@@ -25,10 +25,11 @@
   // book faces the reader; its neighbours curve away around the rim, raking
   // steeply toward edge-on so you read their spines / page-edges. Only a few
   // are visible at once — the rest have rotated out of sight behind.
-  const DEG_STEP    = 42;   // angular gap between books on the rim
+  const DEG_STEP    = 44;   // angular gap between books on the rim
   const RADIUS_K    = 1.42; // wheel radius as a multiple of a card's width
-  const VISIBLE_DEG = 92;   // books turned past this are hidden (≈ ±2–3 → 5–7 seen)
-  const FADE_DEG    = 24;   // soft fade over the last this-many degrees
+  const VISIBLE_DEG = 104;   // books turned past this are hidden (≈ ±2 → 5 seen)
+  const FADE_DEG    = 20;   // soft fade over the last this-many degrees
+  const PARA_K      = 0.105;// parabola depth: side books sink ∝ offset² (y = -kx²)
   const DRAG_STEP   = 70;   // px of drag that equals one book-step
 
   let manifests = [];
@@ -73,13 +74,16 @@
     const R = cardW * RADIUS_K;                 // wheel radius in px
     deck.style.setProperty('--thick', (cardW * 0.185).toFixed(1) + 'px');
     for (let i = 0; i < cards.length; i++) {
-      const phi = wrapOff(i - centre) * DEG_STEP;   // shortest way round the rim
+      const off = wrapOff(i - centre);              // signed offset in book-steps
+      const phi = off * DEG_STEP;                   // shortest way round the rim
       const a   = Math.abs(phi);
       const rad = phi * Math.PI / 180;
 
       // Position on the cylinder surface; front book at z=0, rest curve back.
       const tx = R * Math.sin(rad);
       const tz = R * Math.cos(rad) - R;
+      // Parabola: side books sink along y = -k·x² so the row arcs downward.
+      const ty = cardW * PARA_K * off * off;
       // Tangent to the rim: rotate by the same angle so side books rake away.
       const ry = phi;
 
@@ -89,13 +93,13 @@
 
       const card = cards[i];
       card.style.transform =
-        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg)`;
+        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateY(${ty.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg)`;
       card.style.opacity = op.toFixed(3);
       card.style.zIndex  = String(2000 + Math.round(tz));        // nearer = on top
       card.style.filter  =
         `brightness(${br.toFixed(3)}) drop-shadow(0 16px 20px rgba(0,0,0,${(0.45 * Math.max(0.2, Math.cos(rad))).toFixed(3)}))`;
       card.style.pointerEvents = op < 0.05 ? 'none' : 'auto';
-      card.classList.toggle('is-center', Math.abs(wrapOff(i - centre)) < 0.5);
+      card.classList.toggle('is-center', Math.abs(off) < 0.5);
     }
   }
 
