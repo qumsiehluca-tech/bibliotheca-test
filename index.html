@@ -25,6 +25,12 @@
     <!-- Title cartouche hovers above the book on hover -->
     <div class="title-cartouche" id="titleCartouche"></div>
 
+    <!-- View toggle (top-right): one book flat on the desk, or the upright wheel -->
+    <div class="view-toggle" id="viewToggle" role="group" aria-label="Species mensae">
+      <button type="button" data-view="flat" title="Liber in mensa — one book, flat">&#x25AC;<span>tabula</span></button>
+      <button type="button" data-view="vertical" title="Rota librorum — the wheel">&#x25D1;<span>rota</span></button>
+    </div>
+
     <!-- The deck of books. JS injects one .deck-card per volume and fans them. -->
     <div class="deck" id="deck" role="listbox" tabindex="0" aria-label="Libri — selige librum">
       <!-- Cards injected by JS -->
