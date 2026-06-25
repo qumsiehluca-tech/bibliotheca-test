@@ -29,7 +29,9 @@
   const RADIUS_K    = 1.42; // wheel radius as a multiple of a card's width
   const VISIBLE_DEG = 104;   // books turned past this are hidden (≈ ±2 → 5 seen)
   const FADE_DEG    = 20;   // soft fade over the last this-many degrees
-  const PARA_K      = 0.105;// parabola depth: side books sink ∝ offset² (y = -kx²)
+  const PARA_K      = 0.045;// gentle parabolic sink of the side books
+  const TILT        = 52;   // deg the books lean BACK onto the table (rotateX)
+  const SIDE_FADE   = 0.46; // opacity floor for the non-centred books
   const DRAG_STEP   = 70;   // px of drag that equals one book-step
 
   let manifests = [];
@@ -87,13 +89,16 @@
       // Tangent to the rim: rotate by the same angle so side books rake away.
       const ry = phi;
 
-      const op = a >= VISIBLE_DEG ? 0
-               : Math.max(0, Math.min(1, (VISIBLE_DEG - a) / FADE_DEG));
+      const op0 = a >= VISIBLE_DEG ? 0
+                : Math.max(0, Math.min(1, (VISIBLE_DEG - a) / FADE_DEG));
+      // Non-centred books go a little transparent (focus stays on the front one).
+      const centred = 1 - Math.min(1, Math.abs(off));
+      const op = op0 * (SIDE_FADE + (1 - SIDE_FADE) * centred);
       const br = Math.max(0.32, 0.45 + 0.55 * Math.cos(rad));   // darken as they turn
 
       const card = cards[i];
       card.style.transform =
-        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateY(${ty.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg)`;
+        `translate(-50%,-50%) translateX(${tx.toFixed(1)}px) translateY(${ty.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg) rotateX(${TILT}deg)`;
       card.style.opacity = op.toFixed(3);
       card.style.zIndex  = String(2000 + Math.round(tz));        // nearer = on top
       card.style.filter  =
@@ -146,6 +151,7 @@
     if (!dragging) return;
     dragging = false;
     deck.classList.remove('grabbing');
+    document.documentElement.classList.remove('deck-dragging');
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     if (moved > 6) {                         // a real drag: snap with momentum
@@ -161,6 +167,7 @@
     dragStartCur = cur;
     lastT = performance.now(); vx = 0;
     deck.classList.add('grabbing');
+    document.documentElement.classList.add('deck-dragging');
     deck.classList.remove('animating');
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);

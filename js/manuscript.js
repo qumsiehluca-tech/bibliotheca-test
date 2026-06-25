@@ -540,48 +540,66 @@
   initAutoScroll();
 
   // =========================================================
-  // Middle-click autoscroll (scriptum mode). The browser's native autoscroll
-  // shows the OS puck cursor, which breaks the spell — so we run our own:
-  // press the wheel, a gilt compass drops, and the page glides at a speed set
-  // by how far the pointer sits from that anchor. Any other input cancels it.
+  // Middle-click autoscroll (scriptum mode). The native one shows the OS puck,
+  // which breaks the spell — so we run our own. We listen on the document in
+  // the CAPTURE phase and preventDefault, which reliably stops the browser's
+  // native autoscroll from also firing. Press the wheel: a gilt compass drops
+  // and the page glides toward whichever side the pointer moves. Any click,
+  // wheel, or key cancels it.
   // =========================================================
   function initAutoScroll() {
-    let active = false, anchorY = 0, lastY = 0, raf = 0, puck = null;
+    let active = false, anchorY = 0, lastY = 0, raf = 0, puck = null, dragged = false;
+    const canScroll = () =>
+      document.body.classList.contains('doc-mode') &&
+      docFrame.scrollHeight > docFrame.clientHeight + 4;
 
     function stop() {
       if (!active) return;
       active = false;
       cancelAnimationFrame(raf);
       if (puck) { puck.remove(); puck = null; }
-      document.body.style.removeProperty('cursor');
+      document.documentElement.classList.remove('autoscrolling');
+    }
+    function start(x, y) {
+      active = true; dragged = false; anchorY = lastY = y;
+      puck = document.createElement('div');
+      puck.className = 'autoscroll-puck';
+      puck.style.left = x + 'px';
+      puck.style.top = y + 'px';
+      document.body.appendChild(puck);
+      document.documentElement.classList.add('autoscrolling');
+      raf = requestAnimationFrame(loop);
     }
     function loop() {
       if (!active) return;
       const dy = lastY - anchorY;
-      const mag = Math.max(0, Math.abs(dy) - 14);     // dead-zone near the anchor
-      docFrame.scrollTop += Math.sign(dy) * mag * 0.16;
+      const mag = Math.sign(dy) * Math.max(0, Math.abs(dy) - 14);  // dead-zone
+      docFrame.scrollTop += mag * 0.14;
       raf = requestAnimationFrame(loop);
     }
 
-    docFrame.addEventListener('mousedown', (e) => {
-      if (e.button !== 1) return;                      // middle button only
-      if (!document.body.classList.contains('doc-mode')) return;
-      e.preventDefault();                              // suppress native autoscroll
-      if (active) { stop(); return; }
-      active = true; anchorY = lastY = e.clientY;
-      puck = document.createElement('div');
-      puck.className = 'autoscroll-puck';
-      puck.style.left = e.clientX + 'px';
-      puck.style.top = e.clientY + 'px';
-      document.body.appendChild(puck);
-      document.body.style.cursor = "url('assets/cursors/scroll.png') 9 16, auto";
-      raf = requestAnimationFrame(loop);
+    document.addEventListener('mousedown', (e) => {
+      if (e.button === 1) {
+        if (!canScroll()) return;       // nothing to scroll (e.g. codex mode)
+        e.preventDefault();             // kill the native autoscroll
+        active ? stop() : start(e.clientX, e.clientY);
+      } else if (active) {
+        stop();                         // any other click ends autoscroll
+      }
+    }, true);                           // capture phase, to beat the browser
+    document.addEventListener('mousemove', (e) => {
+      lastY = e.clientY;
+      if (active && Math.abs(lastY - anchorY) > 12) dragged = true;
     });
-    window.addEventListener('mousemove', (e) => { lastY = e.clientY; });
-    window.addEventListener('mousedown', (e) => { if (active && e.button !== 1) stop(); });
+    // Releasing the wheel after dragging stops it (hold-drag mode); a clean
+    // click without dragging leaves it running (click-to-toggle mode).
+    document.addEventListener('mouseup', (e) => {
+      if (e.button === 1 && active && dragged) stop();
+    }, true);
     window.addEventListener('wheel', stop, { passive: true });
     window.addEventListener('keydown', stop);
     window.addEventListener('blur', stop);
   }
+
 
 })();
