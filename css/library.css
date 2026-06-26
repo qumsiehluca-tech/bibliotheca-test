@@ -136,7 +136,7 @@ html, body {
   touch-action: pan-y;       /* let us claim horizontal drags */
   outline: none;
 }
-.deck, .deck * { cursor: var(--drag); cursor: var(--drag2); }
+.deck, .deck * { cursor: var(--hand); cursor: var(--hand2); }
 .deck.grabbing, .deck.grabbing * { cursor: var(--dragon); cursor: var(--dragon2); }
 .deck.view-vertical { top: 63.5%; }     /* upright wheel rides a touch higher */
 .deck.view-flat     { top: 74%; }
@@ -415,6 +415,19 @@ html, body {
 .stage.book-hover .title-cartouche {
   opacity: 1;
   transform: translate(-50%, -6px);
+}
+/* Flat (tabula): the book lies flat and its cover title is foreshortened, so
+   the volume's name is shown as a standing label above it — always visible. */
+.stage.view-flat .title-cartouche {
+  top: 49%;
+  opacity: 1;
+  transform: translate(-50%, -6px);
+  font-size: clamp(18px, 2vw, 30px);
+}
+/* Rota (wheel): the covers carry their own titles — never show the floating
+   white name. */
+.stage.view-vertical .title-cartouche {
+  opacity: 0 !important;
 }
 
 /* Carousel arrows */
