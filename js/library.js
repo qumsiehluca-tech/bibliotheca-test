@@ -38,7 +38,7 @@
   const PARA_K      = 0.045;// gentle parabolic sink of the side books
   const TILT        = 72;   // deg the books lean BACK onto the table — flatter, matches the desk
   const SIDE_FADE   = 0.46; // opacity floor for the non-centred books
-  const DRAG_STEP   = 70;   // px of drag that equals one book-step
+  const DRAG_STEP   = 120;  // px of drag that equals one book-step (higher = slower)
 
   let manifests = [];
   let cards = [];
