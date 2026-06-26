@@ -36,7 +36,7 @@
   const VISIBLE_DEG = 104;   // books turned past this are hidden (≈ ±2 → 5 seen)
   const FADE_DEG    = 20;   // soft fade over the last this-many degrees
   const PARA_K      = 0.045;// gentle parabolic sink of the side books
-  const TILT        = 52;   // deg the books lean BACK onto the table (rotateX)
+  const TILT        = 64;   // deg the books lean BACK onto the table (rotateX) — flatter, matches the desk
   const SIDE_FADE   = 0.46; // opacity floor for the non-centred books
   const DRAG_STEP   = 70;   // px of drag that equals one book-step
 
@@ -150,6 +150,8 @@
   function applyView() {
     deck.classList.toggle('view-flat', viewMode === 'flat');
     deck.classList.toggle('view-vertical', viewMode === 'vertical');
+    stage.classList.toggle('view-flat', viewMode === 'flat');
+    stage.classList.toggle('view-vertical', viewMode === 'vertical');
     if (viewToggle) {
       viewToggle.querySelectorAll('[data-view]').forEach(btn =>
         btn.classList.toggle('active', btn.dataset.view === viewMode));
