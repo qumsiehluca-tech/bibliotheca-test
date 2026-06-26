@@ -138,8 +138,18 @@ html, body {
 }
 .deck, .deck * { cursor: var(--hand); cursor: var(--hand2); }
 .deck.grabbing, .deck.grabbing * { cursor: var(--dragon); cursor: var(--dragon2); }
+/* Landing chrome — title, toggle, cartouche, arrows, atmosphere — is not
+   selectable; only the books themselves can be inspected. */
+body, .scene, .title-cartouche, .view-toggle, .carousel-nav, .book-index,
+.atmos, .stage::before, .stage::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+body::selection { background: transparent; }
+
 .deck.view-vertical { top: 63.5%; }     /* upright wheel rides a touch higher */
-.deck.view-flat     { top: 74%; }
+.deck.view-flat     { top: 78%; }       /* tabula sits low on the desk */
 
 /* View toggle — top-right pill: flat (one book) vs the upright wheel */
 .view-toggle {
@@ -419,7 +429,7 @@ html, body {
 /* Flat (tabula): the book lies flat and its cover title is foreshortened, so
    the volume's name is shown as a standing label above it — always visible. */
 .stage.view-flat .title-cartouche {
-  top: 49%;
+  top: 60%;
   opacity: 1;
   transform: translate(-50%, -6px);
   font-size: clamp(18px, 2vw, 30px);
