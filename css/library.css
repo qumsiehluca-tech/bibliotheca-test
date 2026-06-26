@@ -149,7 +149,7 @@ body, .scene, .title-cartouche, .view-toggle, .carousel-nav, .book-index,
 body::selection { background: transparent; }
 
 .deck.view-vertical { top: 63.5%; }     /* upright wheel rides a touch higher */
-.deck.view-flat     { top: 73%; }       /* tabula: book lies low on the desk */
+.deck.view-flat     { top: 75%; }       /* tabula: book lies low on the desk */
 
 /* View toggle — top-right pill: flat (one book) vs the upright wheel */
 .view-toggle {
