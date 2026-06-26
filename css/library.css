@@ -155,12 +155,13 @@ body::selection { background: transparent; }
 .view-toggle {
   position: absolute;
   top: 3.2%;
-  right: 3%;
+  left: 3%;
   z-index: 6;
   display: flex;
+  flex-direction: column;        /* stacked → vertical pill */
   gap: 3px;
   padding: 4px;
-  border-radius: 999px;
+  border-radius: 22px;
   background: rgba(15,10,5,0.45);
   border: 1px solid rgba(240,213,122,0.30);
   backdrop-filter: blur(2px);
@@ -176,7 +177,7 @@ body::selection { background: transparent; }
   font-size: clamp(11px, 0.95vw, 14px);
   letter-spacing: 0.06em;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: 18px;
   cursor: var(--hand); cursor: var(--hand2);
   transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease;
 }
@@ -210,7 +211,7 @@ body::selection { background: transparent; }
   transform-style: preserve-3d;
   transform-origin: 50% 50%;
   /* transform / opacity / filter / z-index are set inline by JS */
-  transition: transform 540ms cubic-bezier(.4,.05,.2,1),
+  transition: transform 760ms cubic-bezier(.4,.05,.2,1),
               opacity 420ms ease, filter 420ms ease;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
