@@ -1,8 +1,8 @@
 {
   "id": "liber-de-sancta-romana-republica",
   "title": "Liber de Sancta Romana Republica",
-  "author": "",
-  "year": "",
+  "author": "L. V. C. A.",
+  "year": "A.D. DCCXXXII",
   "deskPosition": 7,
   "cover": {
     "leather": "vellum-cream",
@@ -12,9 +12,9 @@
   },
   "frontispiece": {
     "coatOfArms": true,
-    "subtitle": "",
-    "date": "",
-    "footer": ""
+    "subtitle": "Ab Imperatore — L. V. C. A. — D.G. Imp. S.R.R.",
+    "date": "A.D. DCCXXXII",
+    "footer": "Sancta Romana Respublica"
   },
   "contentFile": "content.md",
   "turnStyle": "fade"
