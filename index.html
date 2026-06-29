@@ -36,6 +36,16 @@
       <!-- Cards injected by JS -->
     </div>
 
+    <!-- MOBILE-ONLY shelf: a vertical list of books, painting behind, no carousel.
+         Hidden on tablet/desktop where the deck takes over. -->
+    <nav class="mobile-shelf" id="mobileShelf" aria-label="Libri">
+      <h1 class="mobile-title">Bibliotheca<br><span>Publica Varona</span></h1>
+      <ul class="mobile-list" id="mobileList">
+        <!-- Items injected by JS -->
+      </ul>
+      <p class="mobile-footnote">Lectori salutem</p>
+    </nav>
+
     <!-- Carousel arrows + folio-index -->
     <div class="carousel-nav" aria-label="Inter libros migrare">
       <button id="prevBtn" type="button" aria-label="Liber prior" title="Liber prior">&#x276E;</button>
