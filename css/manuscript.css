@@ -522,16 +522,21 @@ body.doc-mode { overflow: hidden; }
 }
 .doc-frame .doc-column {
   /* The column is the fixed scriptum page width (720px) scaled to fit the
-     viewport, so the harvested 720×1040 content fills each folio exactly. */
+     viewport, so the harvested 720×1040 content fills each folio exactly.
+     We scale from top-left so the SHRUNK box always starts at the left edge,
+     then negative-margin the right to claim back the reserved-but-empty width. */
   width: 720px;
-  max-width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 34px;
   transform: scale(var(--doc-scale, 1));
-  transform-origin: top center;
+  transform-origin: top left;
+  /* When scale < 1 the visible width is 720·scale; reserve only that, so the
+     parent's overflow:auto won't think we're 720px wide and add a scrollbar. */
+  margin-right: calc(720px * (var(--doc-scale, 1) - 1));
+  margin-bottom: calc(var(--doc-column-h, 0px) * (var(--doc-scale, 1) - 1));
 }
 
 /* Each scriptum folio is a full 720×1040 leaf — same parchment look as the
@@ -878,4 +883,53 @@ html, body, * { cursor: var(--cur); cursor: var(--cur2); }
   cursor: url('../assets/cursors/scroll.png') 9 16, auto !important;
   cursor: image-set(url('../assets/cursors/scroll.png') 1x,
                     url('../assets/cursors/scroll@2x.png') 2x) 9 16, auto !important;
+}
+
+/* =========================================================
+   Mobile reader: scriptum-only, full-width single column.
+   ========================================================= */
+@media (max-width: 720px) {
+  /* Hide the codex/scriptum toggle: scriptum is forced. */
+  #modeToggle { display: none; }
+
+  /* Compact topbar: shorter text, smaller padding. */
+  .reader-topbar {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+  #backLink { font-size: 14px; }
+  #tabulaBtn { font-size: 13px; padding: 6px 10px; }
+
+  /* Reader fills the screen without a backdrop letterbox. */
+  .reader-backdrop {
+    background-position: center 62%;     /* anchor on the desk, not the ceiling */
+  }
+
+  /* Scriptum: edge-to-edge folios with comfortable reading column. */
+  .doc-frame .doc-folio {
+    margin: 16px auto;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  }
+  .doc-frame .doc-folio .folio {
+    padding: 40px 24px;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .doc-folio .chapter-title {
+    font-size: clamp(28px, 8vw, 38px);
+    line-height: 1.1;
+  }
+  /* Drop-cap stays handsome but a touch smaller so it doesn't crowd. */
+  .doc-folio p.chapter-opener:not([data-split-from])::first-letter {
+    font-size: 3em;
+  }
+}
+
+/* When the column is transform-scaled, its box still takes 720px of layout
+   width — the negative right margin above claims back the empty reserved
+   width so the parent doesn't scroll horizontally on phones. */
+@media (max-width: 720px) {
+  /* Prevent any horizontal scrolling. */
+  body { overflow-x: hidden; }
+  .doc-frame { overflow-x: hidden; }
 }

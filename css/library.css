@@ -149,7 +149,7 @@ body, .scene, .title-cartouche, .view-toggle, .carousel-nav, .book-index,
 body::selection { background: transparent; }
 
 .deck.view-vertical { top: 63.5%; }     /* upright wheel rides a touch higher */
-.deck.view-flat     { top: 77%; }       /* tabula: book lies low on the desk */
+.deck.view-flat     { top: 73%; }       /* tabula: book lies low on the desk */
 
 /* View toggle — top-right pill: flat (one book) vs the upright wheel */
 .view-toggle {
@@ -586,4 +586,143 @@ html, body, * { cursor: var(--cur); cursor: var(--cur2); }
    pointer may roam (not just over the deck). */
 .deck-dragging, .deck-dragging * {
   cursor: var(--dragon) !important;
+}
+
+/* =========================================================
+   Responsive painting backdrop
+   - Desktop & ultra-wide: the existing letterbox keeps the full
+     painting visible (.scene uses 16:9 min(100vw, ...)). On very
+     wide displays the bars around the 16:9 frame echo the painting
+     softly so it doesn't sit on a black void.
+   - Mobile: hide the carousel chrome and show a vertical list of
+     books over a portrait crop of the painting. The library photo
+     was composed in landscape; on phones we anchor near the desk
+     so the candle/manuscripts read, not the empty ceiling.
+   ========================================================= */
+.mobile-shelf { display: none; }
+
+@media (max-width: 720px) {
+  /* Drop the carousel UI entirely. */
+  .deck,
+  .view-toggle,
+  .carousel-nav,
+  .title-cartouche { display: none !important; }
+
+  /* The painting becomes a portrait backdrop, focused on the desk. */
+  .stage {
+    background:
+      linear-gradient(rgba(11,8,5,0.62), rgba(11,8,5,0.92)),
+      url('../assets/library.jpg') center 62% / cover no-repeat;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  .scene {
+    width: 100vw;
+    height: 100dvh;             /* dvh handles mobile URL bars */
+    background-image: url('../assets/library.jpg');
+    background-size: cover;
+    background-position: center 62%;
+    box-shadow: 0 0 60px 30px rgba(11,8,5,0.85) inset;
+  }
+
+  /* Mobile shelf: vertical list of titles over a translucent panel. */
+  .mobile-shelf {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    padding: 6vh 5vw 4vh;
+    z-index: 5;
+    color: var(--vellum);
+    background:
+      linear-gradient(180deg,
+        rgba(11,8,5,0.35) 0%,
+        rgba(11,8,5,0.55) 35%,
+        rgba(11,8,5,0.78) 100%);
+  }
+  .mobile-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    text-align: center;
+    color: var(--gilt-glow);
+    letter-spacing: 0.14em;
+    font-size: clamp(20px, 6.5vw, 28px);
+    line-height: 1.15;
+    margin: 0 0 1.4em;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.85);
+  }
+  .mobile-title span {
+    display: inline-block;
+    font-size: 0.6em;
+    letter-spacing: 0.3em;
+    color: var(--vellum);
+    margin-top: 0.4em;
+  }
+  .mobile-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+    /* gentle fade at top and bottom so scrolled items melt into the painting */
+    mask-image: linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  .mobile-item {
+    display: grid;
+    grid-template-columns: 2.4em 1fr auto;
+    align-items: baseline;
+    column-gap: 0.9em;
+    padding: 0.85em 0.6em;
+    border-bottom: 1px solid rgba(240,213,122,0.18);
+    cursor: var(--hand); cursor: var(--hand2);
+  }
+  .mobile-item:first-child { border-top: 1px solid rgba(240,213,122,0.18); }
+  .mobile-item:active { background: rgba(240,213,122,0.08); }
+  .mobile-item .m-roman {
+    font-family: 'Cinzel', serif;
+    font-style: italic;
+    color: var(--gilt);
+    font-size: 0.95em;
+    text-align: right;
+  }
+  .mobile-item .m-title {
+    font-family: 'EB Garamond', 'Cormorant Garamond', serif;
+    font-weight: 500;
+    color: var(--vellum);
+    font-size: clamp(15px, 4.5vw, 19px);
+    line-height: 1.25;
+  }
+  .mobile-item .m-year {
+    font-family: 'Cormorant SC', serif;
+    color: rgba(241,230,207,0.55);
+    font-size: 0.78em;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .mobile-footnote {
+    text-align: center;
+    margin: 1em 0 0;
+    font-family: 'Cormorant SC', serif;
+    font-style: italic;
+    color: rgba(241,230,207,0.5);
+    letter-spacing: 0.18em;
+    font-size: 0.78em;
+  }
+
+  /* On phones, the room title image painted into the photo isn't visible at
+     this crop, so the gilt heading above carries the brand. */
+}
+
+/* Ultra-wide: keep the painting beautifully framed and the soft edge-glow on. */
+@media (min-aspect-ratio: 21/9) {
+  .stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 60%, transparent 40%, rgba(11,8,5,0.55) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
 }
