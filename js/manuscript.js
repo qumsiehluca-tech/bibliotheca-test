@@ -527,12 +527,23 @@
   renderSpread(null);
   loading.classList.add('gone');
 
+  // On phones the two-page codex spread is unreadable — force scriptum (scroll)
+  // mode at narrow widths, and re-evaluate on resize/orientation change.
+  const MOBILE_BREAK = 720;
+  const isMobile = () => window.matchMedia(`(max-width: ${MOBILE_BREAK}px)`).matches;
+  if (isMobile()) setMode('doc');
+  window.addEventListener('resize', () => {
+    if (isMobile() && !document.body.classList.contains('doc-mode')) setMode('doc');
+  });
+
   // Restore where the reader left off (silently), then arm the ribbon.
   if (!isPlaceholder) {
     const last = safeGet(POS_KEY);
     if (last && (last.mode === 'doc' || (last.spread | 0) > 0)) {
       resuming = true;
-      applyPosition(last, false);
+      // On mobile, ignore a saved codex-spread position — it can't be displayed.
+      const adjusted = isMobile() ? { ...last, mode: 'doc' } : last;
+      applyPosition(adjusted, false);
       requestAnimationFrame(() => requestAnimationFrame(() => { resuming = false; }));
     }
   }

@@ -76,6 +76,25 @@
     cards.push(card);
   });
 
+  // ---- Build the mobile shelf list (used only at narrow widths) ---------
+  const mobileList = document.getElementById('mobileList');
+  if (mobileList) {
+    manifests.forEach((m, i) => {
+      const li = document.createElement('li');
+      li.className = 'mobile-item';
+      li.dataset.i = i;
+      li.innerHTML =
+        `<span class="m-roman">${ROMAN[i] || (i + 1)}</span>` +
+        `<span class="m-title">${m.title}</span>` +
+        (m.year ? `<span class="m-year">${m.year}</span>` : '');
+      li.addEventListener('click', () => {
+        const id = manifests[i].id;
+        window.location.href = `manuscript.html?book=${encodeURIComponent(id)}`;
+      });
+      mobileList.appendChild(li);
+    });
+  }
+
   // ---- Lay the books out for a given (fractional) centre index ----------
   // Two display modes:
   //   'vertical' — the upright cylinder wheel (several books raking around a rim)
